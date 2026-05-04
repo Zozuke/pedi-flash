@@ -1,0 +1,108 @@
+// sw.js - Service Worker PRO para PediFlash
+
+const CACHE_NAME = 'pediflash-v2';
+
+// Archivos esenciales (precarga)
+const ARCHIVOS_ESTATICOS = [
+    '/',
+    '/index.html',
+    '/cliente.html',
+    '/styles.css',
+    '/app.js',
+    '/icon.png'
+];
+
+// ==========================
+// INSTALACIÓN
+// ==========================
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => {
+                return cache.addAll(ARCHIVOS_ESTATICOS);
+            })
+    );
+    self.skipWaiting();
+});
+
+// ==========================
+// ACTIVACIÓN
+// ==========================
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames
+                    .filter(name => name !== CACHE_NAME)
+                    .map(name => caches.delete(name))
+            );
+        })
+    );
+    self.clients.claim();
+});
+
+// ==========================
+// FETCH (peticiones)
+// ==========================
+self.addEventListener('fetch', event => {
+
+    const url = event.request.url;
+
+    // 🚫 NO cachear APIs externas
+    if (
+        url.includes('supabase.co') ||
+        url.includes('vercel.app') ||
+        url.includes('openstreetmap.org') ||
+        url.includes('nominatim')
+    ) {
+        return; // directo a red
+    }
+
+    // ==========================
+    // ESTRATEGIA: CACHE FIRST
+    // ==========================
+    event.respondWith(
+        caches.match(event.request)
+            .then(response => {
+
+                // ✔ Si está en caché → úsalo
+                if (response) {
+                    return response;
+                }
+
+                // 🌐 Si no → ir a red
+                return fetch(event.request)
+                    .then(fetchResponse => {
+
+                        // ❌ Si falla, no guardar
+                        if (!fetchResponse || fetchResponse.status !== 200) {
+                            return fetchResponse;
+                        }
+
+                        // 💾 Guardar en caché dinámico
+                        const responseClone = fetchResponse.clone();
+
+                        caches.open(CACHE_NAME)
+                            .then(cache => {
+                                cache.put(event.request, responseClone);
+                            });
+
+                        return fetchResponse;
+                    });
+            })
+            .catch(() => {
+                // 🔌 SIN INTERNET
+
+                // Si es navegación (HTML)
+                if (event.request.mode === 'navigate') {
+                    return caches.match('/index.html');
+                }
+
+                // fallback genérico
+                return new Response('Sin conexión', {
+                    status: 503,
+                    statusText: 'Sin conexión'
+                });
+            })
+    );
+});
