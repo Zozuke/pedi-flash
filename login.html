@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PediFlash - Iniciar Sesión</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #e63946;
+            --primary-dark: #c1121f;
+            --secondary: #457b9d;
+            --light: #f1faee;
+            --dark: #1d3557;
+            --gray: #6c757d;
+            --white: #ffffff;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1d3557 0%, #457b9d 50%, #1d3557 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(230, 57, 70, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 30%, rgba(69, 123, 157, 0.15) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes bgFloat {
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+            25% {
+                transform: translate(2%, -1%);
+            }
+            50% {
+                transform: translate(-1%, 2%);
+            }
+            75% {
+                transform: translate(-2%, -2%);
+            }
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 24px;
+            box-shadow: var(--shadow), 0 0 80px rgba(230, 57, 70, 0.15);
+            width: 100%;
+            max-width: 480px;
+            padding: 40px 35px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(20px);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-icon {
+            font-size: 56px;
+            margin-bottom: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.08);
+            }
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--dark);
+            letter-spacing: -0.5px;
+        }
+
+        .logo h1 span {
+            color: var(--primary);
+        }
+
+        .logo p {
+            color: var(--gray);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: #f0f0f0;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: none;
+            background: transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray);
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            background: var(--white);
+            color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: var(--dark);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .form-section {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--dark);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: var(--transition);
+            background: #fafafa;
+            color: var(--dark);
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--white);
+            box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.08);
+        }
+
+        .form-group input::placeholder {
+            color: #bbb;
+        }
+
+        .file-upload-wrapper {
+            position: relative;
+        }
+
+        .file-upload-wrapper input[type="file"] {
+            opacity: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            border: 2px dashed #d0d0d0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            background: #fafafa;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .file-upload-label:hover {
+            border-color: var(--primary);
+            background: #fff5f5;
+            color: var(--primary);
+        }
+
+        .file-upload-label.has-file {
+            border-color: #4caf50;
+            background: #f1f8f1;
+            color: #4caf50;
+            border-style: solid;
+        }
+
+        .file-upload-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 15px rgba(230, 57, 70, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(230, 57, 70, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--secondary);
+            border: 2px solid var(--secondary);
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .forgot-password a {
+            color: var(--secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .forgot-password a:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #fff0f0;
+            color: #d32f2f;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+            border-left: 4px solid #d32f2f;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-5px);
+            }
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .success-message {
+            background: #f0fff0;
+            color: #2e7d32;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+            border-left: 4px solid #2e7d32;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .registro-info {
+            background: #f8f9fa;
+            padding: 14px;
+            border-radius: 10px;
+            margin: 16px 0;
+            font-size: 12px;
+            color: var(--gray);
+            text-align: center;
+            border: 1px solid #e8e8e8;
+        }
+
+        .registro-info span {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .modal h3 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .modal .btn {
+            margin-top: 8px;
+        }
+
+        .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray);
+            padding: 0 8px;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--primary);
+        }
+
+        @media (max-width: 500px) {
+            .login-container {
+                padding: 25px 20px;
+                border-radius: 20px;
+            }
+            .tab-btn {
+                font-size: 12px;
+                padding: 10px 4px;
+            }
+            .logo h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container" id="loginContainer">
+        <div class="logo">
+            <div class="logo-icon">🛵</div>
+            <h1>Pedi<span>Flash</span></h1>
+            <p>Entrega rápida, servicio confiable</p>
+        </div>
+
+        <div class="tabs" id="tabsContainer">
+            <button class="tab-btn active" data-tab="cliente">Soy Cliente</button>
+            <button class="tab-btn" data-tab="repartidor">Soy Repartidor</button>
+            <button class="tab-btn" data-tab="admin">Admin</button>
+        </div>
+
+        <!-- Mensajes -->
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <!-- FORMULARIO CLIENTE -->
+        <div class="form-section active" id="formCliente">
+            <form id="loginFormCliente" autocomplete="off">
+                <div class="form-group">
+                    <label>📧 Correo Electrónico</label>
+                    <input type="email" id="clienteEmail" placeholder="tu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>🔒 Contraseña</label>
+                    <input type="password" id="clientePassword" placeholder="••••••••" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnClienteLogin">
+                    <span id="btnClienteText">Iniciar Sesión</span>
+                </button>
+                <div class="forgot-password">
+                    <a id="forgotCliente">¿Olvidaste tu contraseña?</a>
+                </div>
+                <div style="text-align:center; margin-top:16px; font-size:13px; color: var(--gray);">
+                    ¿No tienes cuenta?
+                    <a style="color: var(--primary); cursor:pointer; font-weight:600;" id="showRegistroCliente">Regístrate aquí</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- FORMULARIO REGISTRO CLIENTE -->
+        <div class="form-section" id="formRegistroCliente">
+            <form id="registroFormCliente" autocomplete="off">
+                <div class="form-group">
+                    <label>👤 Nombre Completo</label>
+                    <input type="text" id="regClienteNombre" placeholder="Juan Pérez" required>
+                </div>
+                <div class="form-group">
+                    <label>📧 Correo Electrónico</label>
+                    <input type="email" id="regClienteEmail" placeholder="tu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>📱 Teléfono</label>
+                    <input type="tel" id="regClienteTelefono" placeholder="2211234567" required pattern="[0-9]{10}">
+                </div>
+                <div class="form-group">
+                    <label>🔒 Contraseña</label>
+                    <input type="password" id="regClientePassword" placeholder="Mínimo 6 caracteres" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnRegistroCliente">
+                    <span id="btnRegistroClienteText">Crear Cuenta</span>
+                </button>
+                <div style="text-align:center; margin-top:12px; font-size:13px; color: var(--gray);">
+                    ¿Ya tienes cuenta?
+                    <a style="color: var(--primary); cursor:pointer; font-weight:600;" id="volverLoginCliente">Inicia Sesión</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- FORMULARIO REPARTIDOR -->
+        <div class="form-section" id="formRepartidor">
+            <form id="loginFormRepartidor" autocomplete="off">
+                <div class="form-group">
+                    <label>📧 Correo Electrónico</label>
+                    <input type="email" id="repartidorEmail" placeholder="tu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>🔒 Contraseña</label>
+                    <input type="password" id="repartidorPassword" placeholder="••••••••" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnRepartidorLogin">
+                    <span id="btnRepartidorText">Iniciar Sesión</span>
+                </button>
+                <div class="forgot-password">
+                    <a id="forgotRepartidor">¿Olvidaste tu contraseña?</a>
+                </div>
+                <div style="text-align:center; margin-top:16px; font-size:13px; color: var(--gray);">
+                    ¿Quieres ser repartidor?
+                    <a style="color: var(--primary); cursor:pointer; font-weight:600;" id="showRegistroRepartidor">Regístrate aquí</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- FORMULARIO REGISTRO REPARTIDOR -->
+        <div class="form-section" id="formRegistroRepartidor">
+            <form id="registroFormRepartidor" autocomplete="off">
+                <div class="form-group">
+                    <label>👤 Nombre Completo</label>
+                    <input type="text" id="regRepNombre" placeholder="Tu nombre completo" required>
+                </div>
+                <div class="form-group">
+                    <label>📧 Correo Electrónico</label>
+                    <input type="email" id="regRepEmail" placeholder="tu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>📱 Teléfono</label>
+                    <input type="tel" id="regRepTelefono" placeholder="2211234567" required pattern="[0-9]{10}">
+                </div>
+                <div class="form-group">
+                    <label>🪪 Foto de Identificación (INE/Licencia)</label>
+                    <div class="file-upload-wrapper">
+                        <div class="file-upload-label" id="labelCredencial">
+                            <span class="file-upload-icon">📄</span>
+                            <span id="textoCredencial">Seleccionar identificación</span>
+                        </div>
+                        <input type="file" id="regRepCredencial" accept="image/*" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>🤳 Foto de tu Rostro (Selfie)</label>
+                    <div class="file-upload-wrapper">
+                        <div class="file-upload-label" id="labelRostro">
+                            <span class="file-upload-icon">📸</span>
+                            <span id="textoRostro">Seleccionar selfie</span>
+                        </div>
+                        <input type="file" id="regRepRostro" accept="image/*" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>🔒 Contraseña</label>
+                    <input type="password" id="regRepPassword" placeholder="Mínimo 6 caracteres" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnRegistroRep">
+                    <span id="btnRegistroRepText">Solicitar Registro</span>
+                </button>
+                <div style="text-align:center; margin-top:12px; font-size:13px; color: var(--gray);">
+                    ¿Ya eres repartidor?
+                    <a style="color: var(--primary); cursor:pointer; font-weight:600;" id="volverLoginRepartidor">Inicia Sesión</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- FORMULARIO ADMIN -->
+        <div class="form-section" id="formAdmin">
+            <form id="loginFormAdmin" autocomplete="off">
+                <div class="form-group">
+                    <label>📧 Correo Electrónico</label>
+                    <input type="email" id="adminEmail" placeholder="admin@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>🔒 Contraseña</label>
+                    <input type="password" id="adminPassword" placeholder="••••••••" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnAdminLogin">
+                    <span id="btnAdminText">Iniciar Sesión</span>
+                </button>
+                <div class="forgot-password">
+                    <a id="forgotAdmin">¿Olvidaste tu contraseña?</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para recuperar contraseña -->
+    <div class="modal-overlay" id="modalRecuperar" style="display:none;">
+        <div class="modal">
+            <button class="modal-close" id="closeModalRecuperar">&times;</button>
+            <h3>🔑 Recuperar Contraseña</h3>
+            <p style="color: var(--gray); font-size:14px; margin-bottom:16px;">
+                Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
+            </p>
+            <form id="formRecuperar">
+                <div class="form-group">
+                    <label>📧 Correo Electrónico</label>
+                    <input type="email" id="recuperarEmail" placeholder="tu@email.com" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnRecuperar">
+                    <span id="btnRecuperarText">Enviar Enlace</span>
+                </button>
+            </form>
+            <div class="error-message" id="errorRecuperar" style="margin-top:12px;"></div>
+            <div class="success-message" id="successRecuperar" style="margin-top:12px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURACIÓN ÚNICA DE SUPABASE
+        // ============================================
+        (function() {
+            // Verificar si ya existe supabase en el scope global
+            if (typeof window.__supabaseInstance !== 'undefined') {
+                console.log('Usando instancia existente de Supabase');
+                return;
+            }
+
+            const SUPABASE_URL = 'https://kjbesbtvgmtuffgmzaaw.supabase.co';
+            const SUPABASE_PUBLISHABLE_KEY =
+                'sb_publishable_xbe-EzT66Ww36li0dM9iVw_5zHWyBTZ';
+
+            // Crear la instancia y guardarla en el namespace global
+            window.__supabaseInstance = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+            console.log('✅ Supabase inicializado correctamente');
+        })();
+
+        // Referencia local para usar en todo el código
+        const supabaseClient = window.__supabaseInstance;
+
+        // ============================================
+        // VARIABLES GLOBALES
+        // ============================================
+        let currentTab = 'cliente';
+        let credencialFile = null;
+        let rostroFile = null;
+
+        // ============================================
+        // CAMBIO DE PESTAÑAS
+        // ============================================
+        document.getElementById('tabsContainer').addEventListener('click', function(e) {
+            if (e.target.classList.contains('tab-btn')) {
+                const tab = e.target.dataset.tab;
+                cambiarTab(tab);
+            }
+        });
+
+        function cambiarTab(tab) {
+            currentTab = tab;
+
+            // Actualizar botones
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+            // Ocultar todos los formularios
+            document.querySelectorAll('.form-section').forEach(section => section.classList.remove(
+                'active'));
+
+            // Mostrar formulario correspondiente
+            const formMap = {
+                'cliente': 'formCliente',
+                'repartidor': 'formRepartidor',
+                'admin': 'formAdmin'
+            };
+
+            const targetForm = document.getElementById(formMap[tab]);
+            if (targetForm) {
+                targetForm.classList.add('active');
+            }
+
+            // Si es admin, asegurarse de que no se muestren formularios de registro
+            if (tab === 'admin') {
+                document.getElementById('formRegistroCliente')?.classList.remove('active');
+                document.getElementById('formRegistroRepartidor')?.classList.remove('active');
+            }
+
+            limpiarMensajes();
+        }
+
+        // ============================================
+        // CAMBIOS ENTRE LOGIN Y REGISTRO (CLIENTE)
+        // ============================================
+        document.getElementById('showRegistroCliente')?.addEventListener('click', function() {
+            document.getElementById('formCliente').classList.remove('active');
+            document.getElementById('formRegistroCliente').classList.add('active');
+            limpiarMensajes();
+        });
+
+        document.getElementById('volverLoginCliente')?.addEventListener('click', function() {
+            document.getElementById('formRegistroCliente').classList.remove('active');
+            document.getElementById('formCliente').classList.add('active');
+            limpiarMensajes();
+        });
+
+        // ============================================
+        // CAMBIOS ENTRE LOGIN Y REGISTRO (REPARTIDOR)
+        // ============================================
+        document.getElementById('showRegistroRepartidor')?.addEventListener('click', function() {
+            document.getElementById('formRepartidor').classList.remove('active');
+            document.getElementById('formRegistroRepartidor').classList.add('active');
+            limpiarMensajes();
+        });
+
+        document.getElementById('volverLoginRepartidor')?.addEventListener('click', function() {
+            document.getElementById('formRegistroRepartidor').classList.remove('active');
+            document.getElementById('formRepartidor').classList.add('active');
+            limpiarMensajes();
+        });
+
+        // ============================================
+        // MANEJO DE ARCHIVOS (REPARTIDOR)
+        // ============================================
+        document.getElementById('regRepCredencial')?.addEventListener('change', function(e) {
+            credencialFile = e.target.files[0];
+            const label = document.getElementById('labelCredencial');
+            const texto = document.getElementById('textoCredencial');
+            if (credencialFile) {
+                label.classList.add('has-file');
+                texto.textContent = '✅ ' + credencialFile.name;
+            } else {
+                label.classList.remove('has-file');
+                texto.textContent = 'Seleccionar identificación';
+            }
+        });
+
+        document.getElementById('regRepRostro')?.addEventListener('change', function(e) {
+            rostroFile = e.target.files[0];
+            const label = document.getElementById('labelRostro');
+            const texto = document.getElementById('textoRostro');
+            if (rostroFile) {
+                label.classList.add('has-file');
+                texto.textContent = '✅ ' + rostroFile.name;
+            } else {
+                label.classList.remove('has-file');
+                texto.textContent = 'Seleccionar selfie';
+            }
+        });
+
+        // ============================================
+        // MODAL RECUPERAR CONTRASEÑA
+        // ============================================
+        function mostrarModalRecuperar() {
+            document.getElementById('modalRecuperar').style.display = 'flex';
+            document.getElementById('recuperarEmail').value = '';
+            document.getElementById('errorRecuperar').style.display = 'none';
+            document.getElementById('successRecuperar').style.display = 'none';
+        }
+
+        document.getElementById('closeModalRecuperar')?.addEventListener('click', function() {
+            document.getElementById('modalRecuperar').style.display = 'none';
+        });
+
+        document.getElementById('forgotCliente')?.addEventListener('click', mostrarModalRecuperar);
+        document.getElementById('forgotRepartidor')?.addEventListener('click', mostrarModalRecuperar);
+        document.getElementById('forgotAdmin')?.addEventListener('click', mostrarModalRecuperar);
+
+        // Enviar recuperación de contraseña
+        document.getElementById('formRecuperar')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('recuperarEmail').value.trim();
+            const btn = document.getElementById('btnRecuperar');
+            const btnText = document.getElementById('btnRecuperarText');
+            const errorEl = document.getElementById('errorRecuperar');
+            const successEl = document.getElementById('successRecuperar');
+
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            if (!email) {
+                errorEl.textContent = 'Por favor ingresa tu correo electrónico.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btnText.innerHTML = '<span class="spinner"></span>Enviando...';
+
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/reset-password.html',
+            });
+
+            btn.disabled = false;
+            btnText.textContent = 'Enviar Enlace';
+
+            if (error) {
+                errorEl.textContent = obtenerMensajeError(error.message);
+                errorEl.style.display = 'block';
+            } else {
+                successEl.textContent = '✅ Se ha enviado un enlace de recuperación a tu correo.';
+                successEl.style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('modalRecuperar').style.display = 'none';
+                }, 3000);
+            }
+        });
+
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('modalRecuperar')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+
+        // ============================================
+        // FUNCIONES AUXILIARES
+        // ============================================
+        function limpiarMensajes() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        function mostrarError(mensaje) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = mensaje;
+            errorEl.style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        function mostrarExito(mensaje) {
+            const successEl = document.getElementById('successMessage');
+            successEl.textContent = mensaje;
+            successEl.style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function obtenerMensajeError(errorMsg) {
+            const errores = {
+                'Invalid login credentials': 'Credenciales inválidas. Verifica tu correo y contraseña.',
+                'User already registered': 'Este correo ya está registrado.',
+                'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres.',
+                'Email not confirmed': 'Debes confirmar tu correo electrónico antes de iniciar sesión.',
+                'Email rate limit exceeded': 'Demasiados intentos. Intenta de nuevo más tarde.',
+                'User not found': 'No se encontró una cuenta con este correo.',
+            };
+            return errores[errorMsg] || errorMsg;
+        }
+
+        function setLoading(btnId, textId, isLoading) {
+            const btn = document.getElementById(btnId);
+            const text = document.getElementById(textId);
+            if (isLoading) {
+                btn.disabled = true;
+                text.innerHTML = '<span class="spinner"></span>Procesando...';
+            } else {
+                btn.disabled = false;
+                text.textContent = text.dataset.original || text.textContent;
+            }
+        }
+
+        // Guardar textos originales de los botones
+        document.querySelectorAll('.btn span').forEach(span => {
+            if (!span.dataset.original) {
+                span.dataset.original = span.textContent;
+            }
+        });
+
+        async function subirArchivo(file, carpeta) {
+            if (!file) return null;
+            const fileName = `${carpeta}/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+            const { data, error } = await supabaseClient.storage
+                .from('documentos')
+                .upload(fileName, file);
+
+            if (error) {
+                console.error('Error al subir archivo:', error);
+                return null;
+            }
+
+            const { data: urlData } = supabaseClient.storage
+                .from('documentos')
+                .getPublicUrl(fileName);
+
+            return urlData?.publicUrl || null;
+        }
+
+        // ============================================
+        // LOGIN CLIENTE
+        // ============================================
+        document.getElementById('loginFormCliente')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            limpiarMensajes();
+            const email = document.getElementById('clienteEmail').value.trim();
+            const password = document.getElementById('clientePassword').value;
+
+            if (!email || !password) {
+                mostrarError('Por favor completa todos los campos.');
+                return;
+            }
+
+            setLoading('btnClienteLogin', 'btnClienteText', true);
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            setLoading('btnClienteLogin', 'btnClienteText', false);
+
+            if (error) {
+                mostrarError(obtenerMensajeError(error.message));
+                return;
+            }
+
+            if (data.user) {
+                // Verificar que el perfil tenga rol cliente
+                const { data: perfil } = await supabaseClient
+                    .from('perfiles')
+                    .select('rol')
+                    .eq('user_id', data.user.id)
+                    .single();
+
+                if (perfil && perfil.rol === 'cliente') {
+                    mostrarExito('✅ Inicio de sesión exitoso. Redirigiendo...');
+                    setTimeout(() => {
+                        window.location.href = 'cliente.html';
+                    }, 1000);
+                } else {
+                    mostrarError('No tienes perfil de cliente. Contacta al administrador.');
+                    await supabaseClient.auth.signOut();
+                }
+            }
+        });
+
+        // ============================================
+        // REGISTRO CLIENTE
+        // ============================================
+        document.getElementById('registroFormCliente')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            limpiarMensajes();
+            const nombre = document.getElementById('regClienteNombre').value.trim();
+            const email = document.getElementById('regClienteEmail').value.trim();
+            const telefono = document.getElementById('regClienteTelefono').value.trim();
+            const password = document.getElementById('regClientePassword').value;
+
+            if (!nombre || !email || !telefono || !password) {
+                mostrarError('Por favor completa todos los campos.');
+                return;
+            }
+
+            if (password.length < 6) {
+                mostrarError('La contraseña debe tener al menos 6 caracteres.');
+                return;
+            }
+
+            setLoading('btnRegistroCliente', 'btnRegistroClienteText', true);
+
+            // Registrar en auth
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { nombre, telefono, rol: 'cliente' }
+                }
+            });
+
+            if (authError) {
+                setLoading('btnRegistroCliente', 'btnRegistroClienteText', false);
+                mostrarError(obtenerMensajeError(authError.message));
+                return;
+            }
+
+            if (authData.user) {
+                // Insertar en perfiles
+                const { error: perfilError } = await supabaseClient
+                    .from('perfiles')
+                    .insert({
+                        user_id: authData.user.id,
+                        nombre: nombre,
+                        telefono: telefono,
+                        rol: 'cliente',
+                        email: email
+                    });
+
+                setLoading('btnRegistroCliente', 'btnRegistroClienteText', false);
+
+                if (perfilError) {
+                    mostrarError('Error al crear perfil: ' + perfilError.message);
+                    return;
+                }
+
+                mostrarExito('✅ Cuenta creada exitosamente. Redirigiendo...');
+                setTimeout(() => {
+                    window.location.href = 'cliente.html';
+                }, 1500);
+            }
+        });
+
+        // ============================================
+        // LOGIN REPARTIDOR
+        // ============================================
+        document.getElementById('loginFormRepartidor')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            limpiarMensajes();
+            const email = document.getElementById('repartidorEmail').value.trim();
+            const password = document.getElementById('repartidorPassword').value;
+
+            if (!email || !password) {
+                mostrarError('Por favor completa todos los campos.');
+                return;
+            }
+
+            setLoading('btnRepartidorLogin', 'btnRepartidorText', true);
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            setLoading('btnRepartidorLogin', 'btnRepartidorText', false);
+
+            if (error) {
+                mostrarError(obtenerMensajeError(error.message));
+                return;
+            }
+
+            if (data.user) {
+                const { data: perfil } = await supabaseClient
+                    .from('perfiles')
+                    .select('rol, suspendido, activo')
+                    .eq('user_id', data.user.id)
+                    .single();
+
+                if (perfil && perfil.rol === 'repartidor') {
+                    if (perfil.suspendido) {
+                        mostrarError('Tu cuenta está suspendida. Contacta al administrador.');
+                        await supabaseClient.auth.signOut();
+                        return;
+                    }
+                    if (!perfil.activo) {
+                        mostrarError('Tu cuenta está desactivada. Contacta al administrador.');
+                        await supabaseClient.auth.signOut();
+                        return;
+                    }
+                    mostrarExito('✅ Inicio de sesión exitoso. Redirigiendo...');
+                    setTimeout(() => {
+                        window.location.href = 'repartidor.html';
+                    }, 1000);
+                } else {
+                    mostrarError('No tienes perfil de repartidor aprobado.');
+                    await supabaseClient.auth.signOut();
+                }
+            }
+        });
+
+        // ============================================
+        // REGISTRO REPARTIDOR
+        // ============================================
+        document.getElementById('registroFormRepartidor')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            limpiarMensajes();
+            const nombre = document.getElementById('regRepNombre').value.trim();
+            const email = document.getElementById('regRepEmail').value.trim();
+            const telefono = document.getElementById('regRepTelefono').value.trim();
+            const password = document.getElementById('regRepPassword').value;
+
+            if (!nombre || !email || !telefono || !password) {
+                mostrarError('Por favor completa todos los campos.');
+                return;
+            }
+
+            if (!credencialFile) {
+                mostrarError('Debes subir una foto de tu identificación.');
+                return;
+            }
+
+            if (!rostroFile) {
+                mostrarError('Debes subir una foto de tu rostro.');
+                return;
+            }
+
+            if (password.length < 6) {
+                mostrarError('La contraseña debe tener al menos 6 caracteres.');
+                return;
+            }
+
+            setLoading('btnRegistroRep', 'btnRegistroRepText', true);
+
+            // Registrar en auth
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { nombre, telefono, rol: 'repartidor' }
+                }
+            });
+
+            if (authError) {
+                setLoading('btnRegistroRep', 'btnRegistroRepText', false);
+                mostrarError(obtenerMensajeError(authError.message));
+                return;
+            }
+
+            if (authData.user) {
+                // Subir archivos
+                const credencialUrl = await subirArchivo(credencialFile, 'credenciales');
+                const rostroUrl = await subirArchivo(rostroFile, 'rostros');
+
+                // Insertar en perfiles
+                const { error: perfilError } = await supabaseClient
+                    .from('perfiles')
+                    .insert({
+                        user_id: authData.user.id,
+                        nombre: nombre,
+                        telefono: telefono,
+                        rol: 'repartidor',
+                        email: email,
+                        credencial_url: credencialUrl,
+                        foto_rostro_url: rostroUrl,
+                        activo: true,
+                        suspendido: false
+                    });
+
+                setLoading('btnRegistroRep', 'btnRegistroRepText', false);
+
+                if (perfilError) {
+                    mostrarError('Error al crear perfil: ' + perfilError.message);
+                    return;
+                }
+
+                mostrarExito('✅ Registro enviado exitosamente. Serás redirigido en breve.');
+                setTimeout(() => {
+                    window.location.href = 'repartidor.html';
+                }, 2000);
+            }
+        });
+
+        // ============================================
+        // LOGIN ADMIN
+        // ============================================
+        document.getElementById('loginFormAdmin')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            limpiarMensajes();
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value;
+
+            if (!email || !password) {
+                mostrarError('Por favor completa todos los campos.');
+                return;
+            }
+
+            setLoading('btnAdminLogin', 'btnAdminText', true);
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            setLoading('btnAdminLogin', 'btnAdminText', false);
+
+            if (error) {
+                mostrarError(obtenerMensajeError(error.message));
+                return;
+            }
+
+            if (data.user) {
+                const { data: perfil } = await supabaseClient
+                    .from('perfiles')
+                    .select('rol')
+                    .eq('user_id', data.user.id)
+                    .single();
+
+                if (perfil && perfil.rol === 'admin') {
+                    mostrarExito('✅ Acceso de administrador. Redirigiendo...');
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 1000);
+                } else {
+                    mostrarError('No tienes permisos de administrador.');
+                    await supabaseClient.auth.signOut();
+                }
+            }
+        });
+
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
+        console.log('🚀 PediFlash Login - Sistema listo');
+        console.log('   Cliente: Login + Registro');
+        console.log('   Repartidor: Login + Registro (con documentos)');
+        console.log('   Admin: Solo Login');
+        console.log('   Recuperación de contraseña: Disponible');
+    </script>
+</body>
+</html>

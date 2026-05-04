@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PEDI-FLASH | Panel de Administración</title>
+    <!-- Tailwind + Font Awesome + Google Fonts + Chart.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+    <script src="https://unpkg.com/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f3f4f6; }
+        .card-hover:hover { transform: translateY(-2px); transition: all 0.2s ease; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .scroll-table { overflow-x: auto; }
+        .sidebar-item { transition: all 0.2s; cursor: pointer; }
+        .sidebar-item.active { background-color: #1e40af; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .sidebar-item.active i { color: white; }
+        .sidebar-item:not(.active):hover { background-color: #dbeafe; }
+        .badge-pendiente { background-color: #fef3c7; color: #d97706; }
+        .badge-en_camino { background-color: #dbeafe; color: #2563eb; }
+        .badge-entregado { background-color: #d1fae5; color: #059669; }
+        .badge-cancelado { background-color: #fee2e2; color: #dc2626; }
+        .loading-spinner { border: 3px solid #e5e7eb; border-top: 3px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 1rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="app" class="flex h-screen bg-gray-100">
+    <!-- SIDEBAR -->
+    <aside class="w-72 bg-white shadow-xl z-10 flex flex-col">
+        <div class="p-6 border-b border-gray-200 flex items-center gap-3">
+            <i class="fas fa-bolt text-3xl text-blue-600"></i>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">PEDI-FLASH</h1>
+                <p class="text-xs text-gray-500">Panel de Control Admin</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-1.5">
+            <div data-tab="dashboard" class="sidebar-item active flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium"><i class="fas fa-chart-line w-5"></i> Dashboard</div>
+            <div data-tab="pedidos" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium"><i class="fas fa-truck w-5"></i> Pedidos</div>
+            <div data-tab="repartidores" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium"><i class="fas fa-motorcycle w-5"></i> Repartidores</div>
+            <div data-tab="clientes" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium"><i class="fas fa-users w-5"></i> Clientes</div>
+            <div data-tab="jornadas" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium"><i class="fas fa-calendar-alt w-5"></i> Jornadas & Pagos</div>
+            <div data-tab="configuracion" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium"><i class="fas fa-cog w-5"></i> Configuración</div>
+            <div data-tab="logs" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 font-medium"><i class="fas fa-history w-5"></i> Auditoría</div>
+        </nav>
+        <div class="p-4 text-xs text-gray-400 border-t">PEDI-FLASH Admin v1.0</div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto p-6 md:p-8">
+        <!-- DASHBOARD -->
+        <div id="pageDashboard" class="page-content">
+            <div class="mb-6 flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">Resumen General</h2>
+                <div class="text-sm bg-white rounded-lg shadow px-4 py-2"><i class="far fa-calendar-alt mr-2"></i><span id="fechaActual"></span></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="statsGrid">
+                <div class="bg-white rounded-2xl shadow p-5 animate-pulse"><div class="h-12 w-24 bg-gray-200 rounded"></div></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-2xl shadow p-5"><h3 class="font-semibold text-lg mb-3">📊 Pedidos por estado</h3><canvas id="estadosChart" height="200"></canvas></div>
+                <div class="bg-white rounded-2xl shadow p-5"><h3 class="font-semibold text-lg mb-3">💰 Ingresos diarios (últimos 7 días)</h3><canvas id="gananciasChart" height="200"></canvas></div>
+            </div>
+            <div class="bg-white rounded-2xl shadow overflow-hidden"><div class="px-6 py-4 border-b font-bold text-lg">📦 Últimos pedidos</div><div class="p-4 scroll-table"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-3 text-left">#Pedido</th><th>Cliente</th><th>Estado</th><th>Total</th><th>Fecha</th></tr></thead><tbody id="ultimosPedidosList"><tr><td colspan="5" class="text-center p-4">Cargando...</td></tr></tbody></table></div></div>
+        </div>
+
+        <!-- PEDIDOS -->
+        <div id="pagePedidos" class="page-content hidden">
+            <div class="flex flex-wrap justify-between items-center mb-6"><h2 class="text-2xl font-bold">📋 Gestión de Pedidos</h2><div class="flex gap-2"><input type="text" id="searchPedido" placeholder="Buscar # o cliente..." class="border rounded-lg px-4 py-2 w-64"><select id="filterEstadoPedido" class="border rounded-lg px-4 py-2"><option value="">Todos los estados</option><option value="pendiente">Pendiente</option><option value="en_camino">En camino</option><option value="entregado">Entregado</option><option value="cancelado">Cancelado</option></select></div></div>
+            <div class="bg-white rounded-2xl shadow overflow-hidden"><div class="scroll-table"><table class="min-w-full text-sm"><thead class="bg-gray-100"><tr><th class="p-3">N°</th><th>Cliente</th><th>Repartidor</th><th>Tipo</th><th>Estado</th><th>Distancia</th><th>Precio</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="tablaPedidosBody"><tr><td colspan="9" class="p-6 text-center">Cargando pedidos...</td></tr></tbody></table></div></div>
+        </div>
+
+        <!-- REPARTIDORES -->
+        <div id="pageRepartidores" class="page-content hidden">
+            <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">🛵 Repartidores</h2><button id="refreshRepartidores" class="bg-blue-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-sync-alt"></i> Actualizar</button></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="repartidoresGrid"></div>
+        </div>
+
+        <!-- CLIENTES -->
+        <div id="pageClientes" class="page-content hidden">
+            <h2 class="text-2xl font-bold mb-4">👥 Clientes registrados</h2>
+            <div class="bg-white rounded-2xl shadow overflow-hidden"><div class="scroll-table"><table class="min-w-full text-sm"><thead class="bg-gray-100"><tr><th class="p-3">Nombre</th><th>Teléfono</th><th>Email</th><th>Pedidos</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="clientesTableBody"></tbody></table></div></div>
+        </div>
+
+        <!-- JORNADAS Y PAGOS -->
+        <div id="pageJornadas" class="page-content hidden">
+            <h2 class="text-2xl font-bold mb-4">📅 Jornadas y Pagos de Repartidores</h2>
+            <div class="bg-white rounded-2xl shadow p-4 mb-6"><h3 class="font-bold">📌 Pagos pendientes / vencidos</h3><div id="pagosResumen" class="mt-2 text-sm"></div></div>
+            <div class="bg-white rounded-2xl shadow overflow-hidden"><div class="scroll-table"><table class="min-w-full text-sm"><thead class="bg-gray-100"><tr><th>Repartidor</th><th>Jornada Inicio</th><th>Total Ganancias</th><th>Comisión a pagar</th><th>Estado Jornada</th><th>Pago</th></tr></thead><tbody id="jornadasTableBody"></tbody></table></div></div>
+        </div>
+
+        <!-- CONFIGURACIÓN -->
+        <div id="pageConfiguracion" class="page-content hidden">
+            <h2 class="text-2xl font-bold mb-4">⚙️ Configuración del Sistema</h2>
+            <div class="bg-white rounded-2xl shadow p-6 max-w-3xl"><form id="configForm" class="space-y-4"></form><div class="mt-6"><button id="updateConfigBtn" class="bg-green-600 text-white px-6 py-2 rounded-lg">Guardar Cambios</button></div></div>
+        </div>
+
+        <!-- LOGS -->
+        <div id="pageLogs" class="page-content hidden">
+            <h2 class="text-2xl font-bold mb-4">📜 Logs de Auditoría</h2>
+            <div class="bg-white rounded-2xl shadow overflow-hidden"><div class="scroll-table"><table class="min-w-full text-xs"><thead class="bg-gray-100"><tr><th>Usuario</th><th>Acción</th><th>Tabla</th><th>Detalle</th><th>Fecha</th></tr></thead><tbody id="logsTableBody"></tbody></table></div></div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // ============================================
+    // CONFIGURACIÓN DE SUPABASE
+    // ============================================
+    const SUPABASE_URL = "https://kjbesbtvgmtuffgmzaaw.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_xbe-EzT66Ww36li0dM9iVw_5zHWyBTZ";
+    let supabase = null;
+    let currentUser = null;
+    let estadosChart = null;
+    let gananciasChart = null;
+
+    // Inicializar Supabase y verificar sesión (sin redirigir a login, solo validar)
+    async function initSupabase() {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error || !session) {
+            console.error("No hay sesión activa en Supabase - El usuario debe loguearse primero");
+            mostrarErrorSesion();
+            return false;
+        }
+        
+        currentUser = session.user;
+        
+        // Verificar que el usuario tenga rol admin en la tabla perfiles
+        const { data: perfil, error: perfilErr } = await supabase
+            .from('perfiles')
+            .select('rol, nombre')
+            .eq('user_id', currentUser.id)
+            .single();
+        
+        if (perfilErr || perfil?.rol !== 'admin') {
+            console.error("Acceso denegado: El usuario no es administrador");
+            mostrarErrorAdmin();
+            return false;
+        }
+        
+        // Mostrar nombre del admin en algún lugar (opcional)
+        console.log(`Admin logueado: ${perfil.nombre}`);
+        return true;
+    }
+
+    function mostrarErrorSesion() {
+        document.body.innerHTML = `
+            <div class="flex items-center justify-center h-screen bg-gray-100">
+                <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+                    <i class="fas fa-lock text-6xl text-red-500 mb-4"></i>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Sesión no encontrada</h2>
+                    <p class="text-gray-600 mb-6">No hay una sesión activa en Supabase. Por favor, inicia sesión primero.</p>
+                    <p class="text-sm text-gray-500">Este panel requiere que el usuario esté autenticado y tenga rol de administrador.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function mostrarErrorAdmin() {
+        document.body.innerHTML = `
+            <div class="flex items-center justify-center h-screen bg-gray-100">
+                <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+                    <i class="fas fa-shield-alt text-6xl text-red-500 mb-4"></i>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Acceso Denegado</h2>
+                    <p class="text-gray-600 mb-6">El usuario actual no tiene permisos de administrador.</p>
+                    <p class="text-sm text-gray-500">Solo usuarios con rol 'admin' pueden acceder a este panel.</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // Helper para fetch con manejo de errores
+    async function fetchData(query) {
+        const { data, error } = await query;
+        if (error) console.error("Error en consulta:", error);
+        return data || [];
+    }
+
+    // ============================================
+    // DASHBOARD
+    // ============================================
+    async function loadDashboardStats() {
+        const pedidos = await fetchData(supabase.from('pedidos').select('estado, precio_total, fecha_creacion'));
+        const perfiles = await fetchData(supabase.from('perfiles').select('id, nombre, rol'));
+        
+        const totalPedidos = pedidos.length;
+        const pendientes = pedidos.filter(p => p.estado === 'pendiente').length;
+        const enCamino = pedidos.filter(p => p.estado === 'en_camino').length;
+        const entregados = pedidos.filter(p => p.estado === 'entregado').length;
+        const cancelados = pedidos.filter(p => p.estado === 'cancelado').length;
+        const ingresosTotales = pedidos.filter(p => p.estado === 'entregado').reduce((sum, p) => sum + (p.precio_total || 0), 0);
+        const repartidoresActivos = perfiles.filter(p => p.rol === 'repartidor' && p.activo !== false).length;
+        const clientesTotal = perfiles.filter(p => p.rol === 'cliente').length;
+        
+        document.getElementById('statsGrid').innerHTML = `
+            <div class="bg-white rounded-2xl shadow p-5 card-hover"><div class="flex justify-between items-start"><i class="fas fa-shopping-cart text-3xl text-blue-500"></i></div><h3 class="text-gray-500 text-sm mt-2">Total Pedidos</h3><p class="text-3xl font-bold">${totalPedidos}</p></div>
+            <div class="bg-white rounded-2xl shadow p-5 card-hover"><i class="fas fa-spinner text-3xl text-yellow-500"></i><h3 class="text-gray-500 text-sm mt-2">Pendientes</h3><p class="text-3xl font-bold">${pendientes}</p></div>
+            <div class="bg-white rounded-2xl shadow p-5 card-hover"><i class="fas fa-check-circle text-3xl text-green-500"></i><h3 class="text-gray-500 text-sm mt-2">Entregados</h3><p class="text-3xl font-bold">${entregados}</p></div>
+            <div class="bg-white rounded-2xl shadow p-5 card-hover"><i class="fas fa-dollar-sign text-3xl text-indigo-500"></i><h3 class="text-gray-500 text-sm mt-2">Ingresos (MXN)</h3><p class="text-3xl font-bold">$${ingresosTotales.toFixed(2)}</p></div>
+            <div class="bg-white rounded-2xl shadow p-5 card-hover"><i class="fas fa-motorcycle text-3xl text-purple-500"></i><h3 class="text-gray-500 text-sm mt-2">Repartidores</h3><p class="text-3xl font-bold">${repartidoresActivos}</p></div>
+            <div class="bg-white rounded-2xl shadow p-5 card-hover"><i class="fas fa-users text-3xl text-teal-500"></i><h3 class="text-gray-500 text-sm mt-2">Clientes</h3><p class="text-3xl font-bold">${clientesTotal}</p></div>
+        `;
+        
+        // Gráfico estados
+        const ctxEstados = document.getElementById('estadosChart')?.getContext('2d');
+        if (estadosChart) estadosChart.destroy();
+        if (ctxEstados) {
+            estadosChart = new Chart(ctxEstados, { 
+                type: 'doughnut', 
+                data: { 
+                    labels: ['Pendiente', 'En camino', 'Entregado', 'Cancelado'], 
+                    datasets: [{ data: [pendientes, enCamino, entregados, cancelados], backgroundColor: ['#facc15', '#3b82f6', '#22c55e', '#ef4444'] }] 
+                } 
+            });
+        }
+        
+        // Ganancias últimos 7 días
+        const last7 = [...Array(7)].map((_, i) => { let d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().split('T')[0]; }).reverse();
+        const gananciasDiarias = last7.map(fecha => {
+            return pedidos.filter(p => p.estado === 'entregado' && p.fecha_creacion?.startsWith(fecha)).reduce((s, p) => s + (p.precio_total || 0), 0);
+        });
+        const ctxGanan = document.getElementById('gananciasChart')?.getContext('2d');
+        if (gananciasChart) gananciasChart.destroy();
+        if (ctxGanan) {
+            gananciasChart = new Chart(ctxGanan, { type: 'line', data: { labels: last7.map(d => d.slice(5)), datasets: [{ label: 'Ingresos (MXN)', data: gananciasDiarias, borderColor: '#10b981', tension: 0.3, fill: true, backgroundColor: 'rgba(16,185,129,0.1)' }] } });
+        }
+        
+        // últimos 5 pedidos
+        const clientesMap = {};
+        perfiles.forEach(p => clientesMap[p.id] = p.nombre);
+        const ultimos = [...pedidos].sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion)).slice(0, 5);
+        const htmlUltimos = ultimos.map(p => `
+            <tr class="border-b">
+                <td class="p-2">#${p.numero_pedido || '??'}</td>
+                <td class="p-2">${clientesMap[p.cliente_id] || 'N/A'}</td>
+                <td class="p-2"><span class="px-2 py-1 rounded-full text-xs ${p.estado === 'pendiente' ? 'badge-pendiente' : p.estado === 'en_camino' ? 'badge-en_camino' : p.estado === 'entregado' ? 'badge-entregado' : 'badge-cancelado'}">${p.estado}</span></td>
+                <td class="p-2">$${p.precio_total?.toFixed(2)}</td>
+                <td class="p-2">${new Date(p.fecha_creacion).toLocaleString()}</td>
+            </tr>
+        `).join('');
+        document.getElementById('ultimosPedidosList').innerHTML = htmlUltimos || '<tr><td colspan="5" class="p-4 text-center">Sin pedidos</td></tr>';
+    }
+
+    // ============================================
+    // PEDIDOS
+    // ============================================
+    async function loadAllPedidos() {
+        const { data: pedidos, error } = await supabase
+            .from('pedidos')
+            .select('*, cliente:cliente_id(nombre), repartidor:repartidor_id(nombre)')
+            .order('fecha_creacion', { ascending: false });
+        if (error) return;
+        
+        const filtroEstado = document.getElementById('filterEstadoPedido')?.value;
+        const searchTerm = document.getElementById('searchPedido')?.value.toLowerCase();
+        let filtered = pedidos || [];
+        if (filtroEstado) filtered = filtered.filter(p => p.estado === filtroEstado);
+        if (searchTerm) filtered = filtered.filter(p => (p.numero_pedido?.toString().includes(searchTerm) || (p.cliente?.nombre?.toLowerCase().includes(searchTerm))));
+        
+        const tbody = document.getElementById('tablaPedidosBody');
+        tbody.innerHTML = filtered.map(p => `
+            <tr class="border-b hover:bg-gray-50">
+                <td class="p-3">#${p.numero_pedido}</td>
+                <td class="p-3">${p.cliente?.nombre || '---'}</td>
+                <td class="p-3">${p.repartidor?.nombre || 'Sin asignar'}</td>
+                <td class="p-3">${p.tipo === 'envio' ? '📦 Envío' : '🏠 Recepción'}</td>
+                <td class="p-3"><span class="px-2 py-1 rounded-full text-xs ${p.estado === 'pendiente' ? 'badge-pendiente' : p.estado === 'en_camino' ? 'badge-en_camino' : p.estado === 'entregado' ? 'badge-entregado' : 'badge-cancelado'}">${p.estado}</span></td>
+                <td class="p-3">${p.distancia_km || '-'} km</td>
+                <td class="p-3">$${p.precio_total?.toFixed(2)}</td>
+                <td class="p-3">${new Date(p.fecha_creacion).toLocaleDateString()}</td>
+                <td class="p-3">${p.estado === 'pendiente' ? `<button class="cancelarPedidoBtn text-red-600 hover:text-red-800" data-id="${p.id}"><i class="fas fa-ban"></i> Cancelar</button>` : '-'}</td>
+            </tr>
+        `).join('');
+        
+        document.querySelectorAll('.cancelarPedidoBtn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.dataset.id;
+                if (confirm('¿Cancelar este pedido?')) {
+                    await supabase.from('pedidos').update({ estado: 'cancelado', activo: false }).eq('id', id);
+                    loadAllPedidos();
+                    loadDashboardStats();
+                }
+            });
+        });
+    }
+
+    // ============================================
+    // REPARTIDORES
+    // ============================================
+    async function loadRepartidores() {
+        const reps = await fetchData(supabase.from('perfiles').select('*').eq('rol', 'repartidor'));
+        const grid = document.getElementById('repartidoresGrid');
+        grid.innerHTML = reps.map(r => `
+            <div class="bg-white rounded-xl shadow p-5 card-hover">
+                <div class="flex justify-between items-start">
+                    <div><i class="fas fa-user-circle text-4xl text-gray-400"></i><h3 class="font-bold text-lg mt-1">${r.nombre}</h3><p class="text-sm text-gray-500">📞 ${r.telefono}</p><p class="text-xs mt-1">⭐ ${r.calificacion} / 5</p></div>
+                    <div class="text-right"><span class="px-2 py-1 rounded-full text-xs ${r.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${r.activo ? 'Activo' : 'Inactivo'}</span><br><span class="text-xs ${r.suspendido ? 'text-red-500' : 'text-gray-400'}">${r.suspendido ? 'Suspendido' : ''}</span></div>
+                </div>
+                <div class="mt-4 flex gap-2 flex-wrap">
+                    <button class="toggleActivoBtn text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded" data-id="${r.id}" data-activo="${r.activo}">${r.activo ? 'Suspender' : 'Activar'}</button>
+                    <select class="changeRolSelect border rounded p-1 text-xs" data-id="${r.id}">
+                        <option ${r.rol === 'repartidor' ? 'selected' : ''} value="repartidor">Repartidor</option>
+                        <option ${r.rol === 'cliente' ? 'selected' : ''} value="cliente">Cliente</option>
+                        <option ${r.rol === 'admin' ? 'selected' : ''} value="admin">Admin</option>
+                    </select>
+                </div>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('.toggleActivoBtn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.dataset.id;
+                const activoActual = btn.dataset.activo === 'true';
+                await supabase.from('perfiles').update({ activo: !activoActual, suspendido: false }).eq('id', id);
+                loadRepartidores();
+                loadDashboardStats();
+            });
+        });
+        
+        document.querySelectorAll('.changeRolSelect').forEach(sel => {
+            sel.addEventListener('change', async () => {
+                const id = sel.dataset.id;
+                const newRol = sel.value;
+                await supabase.from('perfiles').update({ rol: newRol }).eq('id', id);
+                loadRepartidores();
+            });
+        });
+    }
+
+    // ============================================
+    // CLIENTES
+    // ============================================
+    async function loadClientes() {
+        const clientes = await fetchData(supabase.from('perfiles').select('*').eq('rol', 'cliente'));
+        const pedidos = await fetchData(supabase.from('pedidos').select('cliente_id'));
+        const conteo = {};
+        pedidos.forEach(p => conteo[p.cliente_id] = (conteo[p.cliente_id] || 0) + 1);
+        const tbody = document.getElementById('clientesTableBody');
+        tbody.innerHTML = clientes.map(c => `
+            <tr class="border-b">
+                <td class="p-3">${c.nombre}</td>
+                <td class="p-3">${c.telefono}</td>
+                <td class="p-3">${c.email || '—'}</td>
+                <td class="p-3">${conteo[c.id] || 0}</td>
+                <td class="p-3">${c.activo ? '<span class="text-green-600">Activo</span>' : '<span class="text-red-600">Inactivo</span>'}</td>
+                <td class="p-3"><button class="btnSuspendCliente text-red-500 hover:text-red-700" data-id="${c.id}" data-activo="${c.activo}"><i class="fas ${c.activo ? 'fa-user-slash' : 'fa-user-check'}"></i> ${c.activo ? 'Suspender' : 'Activar'}</button></td>
+            </tr>
+        `).join('');
+        
+        document.querySelectorAll('.btnSuspendCliente').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.dataset.id;
+                const activoActual = btn.dataset.activo === 'true';
+                await supabase.from('perfiles').update({ activo: !activoActual }).eq('id', id);
+                loadClientes();
+            });
+        });
+    }
+
+    // ============================================
+    // JORNADAS Y PAGOS
+    // ============================================
+    async function loadJornadasYPagos() {
+        const jornadas = await fetchData(supabase.from('jornadas_repartidor').select('*, repartidor:repartidor_id(nombre)'));
+        const pagos = await fetchData(supabase.from('pagos_repartidor').select('*, repartidor:repartidor_id(nombre)'));
+        const tbody = document.getElementById('jornadasTableBody');
+        tbody.innerHTML = jornadas.map(j => {
+            const pagoRel = pagos.find(p => p.jornada_id === j.id);
+            return `<tr class="border-b">
+                <td class="p-3">${j.repartidor?.nombre || '---'}</td>
+                <td class="p-3">${new Date(j.fecha_inicio).toLocaleString()}</td>
+                <td class="p-3">$${j.total_ganancias?.toFixed(2)}</td>
+                <td class="p-3">$${j.comision_pagar?.toFixed(2)}</td>
+                <td class="p-3"><span class="px-2 py-1 rounded-full text-xs ${j.estado === 'activa' ? 'bg-green-100 text-green-700' : 'bg-gray-200'}">${j.estado}</span></td>
+                <td class="p-3">${pagoRel ? `<span class="px-2 py-1 rounded-full text-xs ${pagoRel.estado === 'pagado' ? 'bg-green-100' : pagoRel.estado === 'vencido' ? 'bg-red-100' : 'bg-yellow-100'}">${pagoRel.estado}</span>` : 'Sin pago'}</td>
+            </tr>`;
+        }).join('');
+        
+        const pendientesPago = pagos.filter(p => p.estado === 'pendiente');
+        const vencidos = pagos.filter(p => p.estado === 'vencido');
+        document.getElementById('pagosResumen').innerHTML = `
+            <div class="flex gap-4"><span class="bg-yellow-100 px-3 py-1 rounded-full">⏳ ${pendientesPago.length} pagos pendientes</span><span class="bg-red-100 px-3 py-1 rounded-full">⚠️ ${vencidos.length} pagos vencidos</span></div>
+        `;
+    }
+
+    // ============================================
+    // CONFIGURACIÓN
+    // ============================================
+    async function loadConfiguracion() {
+        const { data: confs } = await supabase.from('configuracion_sistema').select('clave, valor, descripcion');
+        const form = document.getElementById('configForm');
+        form.innerHTML = '';
+        confs?.forEach(c => {
+            form.innerHTML += `<div><label class="block text-sm font-medium text-gray-700">${c.descripcion || c.clave}</label><input type="text" name="${c.clave}" value="${c.valor}" class="border rounded-lg w-full p-2 mt-1" /></div>`;
+        });
+    }
+    
+    document.getElementById('updateConfigBtn')?.addEventListener('click', async () => {
+        const inputs = document.querySelectorAll('#configForm input');
+        for (let inp of inputs) {
+            await supabase.from('configuracion_sistema').update({ valor: inp.value, updated_at: new Date() }).eq('clave', inp.name);
+        }
+        alert('✅ Configuración actualizada correctamente');
+        loadConfiguracion();
+    });
+
+    // ============================================
+    // LOGS
+    // ============================================
+    async function loadLogs() {
+        const logs = await fetchData(supabase.from('logs_sistema').select('*, usuario:usuario_id(nombre)').order('created_at', { ascending: false }).limit(100));
+        const tbody = document.getElementById('logsTableBody');
+        tbody.innerHTML = logs.map(l => `
+            <tr class="border-b">
+                <td class="p-2">${l.usuario?.nombre || 'Sistema'}</td>
+                <td class="p-2">${l.accion}</td>
+                <td class="p-2">${l.tabla_afectada || '-'}</td>
+                <td class="p-2 max-w-xs truncate">${JSON.stringify(l.detalle || {}).slice(0, 60)}</td>
+                <td class="p-2">${new Date(l.created_at).toLocaleString()}</td>
+            </tr>
+        `).join('');
+    }
+
+    // ============================================
+    // NAVEGACIÓN ENTRE TABS
+    // ============================================
+    function setupNavigation() {
+        const tabs = document.querySelectorAll('.sidebar-item');
+        const pages = ['pageDashboard', 'pagePedidos', 'pageRepartidores', 'pageClientes', 'pageJornadas', 'pageConfiguracion', 'pageLogs'];
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.dataset.tab;
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                pages.forEach(p => document.getElementById(p).classList.add('hidden'));
+                
+                if (tabId === 'dashboard') { document.getElementById('pageDashboard').classList.remove('hidden'); loadDashboardStats(); }
+                if (tabId === 'pedidos') { document.getElementById('pagePedidos').classList.remove('hidden'); loadAllPedidos(); }
+                if (tabId === 'repartidores') { document.getElementById('pageRepartidores').classList.remove('hidden'); loadRepartidores(); }
+                if (tabId === 'clientes') { document.getElementById('pageClientes').classList.remove('hidden'); loadClientes(); }
+                if (tabId === 'jornadas') { document.getElementById('pageJornadas').classList.remove('hidden'); loadJornadasYPagos(); }
+                if (tabId === 'configuracion') { document.getElementById('pageConfiguracion').classList.remove('hidden'); loadConfiguracion(); }
+                if (tabId === 'logs') { document.getElementById('pageLogs').classList.remove('hidden'); loadLogs(); }
+            });
+        });
+        
+        document.getElementById('searchPedido')?.addEventListener('input', () => loadAllPedidos());
+        document.getElementById('filterEstadoPedido')?.addEventListener('change', () => loadAllPedidos());
+        document.getElementById('refreshRepartidores')?.addEventListener('click', loadRepartidores);
+    }
+
+    // ============================================
+    // INICIALIZACIÓN
+    // ============================================
+    document.getElementById('fechaActual').innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    
+    (async () => {
+        const ok = await initSupabase();
+        if (ok) {
+            await loadDashboardStats();
+            setupNavigation();
+            // Precargar datos silenciosos
+            loadAllPedidos();
+            loadRepartidores();
+            loadClientes();
+            loadJornadasYPagos();
+        }
+    })();
+</script>
+</body>
+</html>

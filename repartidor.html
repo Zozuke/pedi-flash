@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PEDI-FLASH | Repartidor - Gana con cada envío</title>
+    <!-- Tailwind + Font Awesome + Google Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS y JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height: 100vh; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 2rem; box-shadow: 0 20px 35px -10px rgba(0,0,0,0.2); }
+        .badge-pendiente { background: #fef3c7; color: #d97706; }
+        .badge-en_camino { background: #dbeafe; color: #2563eb; }
+        .badge-entregado { background: #d1fae5; color: #059669; }
+        .badge-cancelado { background: #fee2e2; color: #dc2626; }
+        .badge-jornada-activa { background: #d1fae5; color: #059669; }
+        .badge-jornada-finalizada { background: #e5e7eb; color: #4b5563; }
+        .loading-spinner { border: 3px solid #e5e7eb; border-top: 3px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .map-container { height: 300px; border-radius: 1rem; z-index: 1; }
+        .leaflet-routing-container { display: none !important; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<div class="max-w-6xl mx-auto">
+    <!-- HEADER -->
+    <div class="flex flex-wrap justify-between items-center gap-4 mb-6 text-white">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-motorcycle text-3xl"></i>
+            <h1 class="text-3xl font-bold">PEDI-FLASH Repartidor</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="userNameDisplay" class="text-sm bg-white/20 px-4 py-2 rounded-full"><i class="fas fa-user mr-2"></i>Cargando...</span>
+            <span id="jornadaStatus" class="text-sm bg-white/20 px-3 py-2 rounded-full"><i class="fas fa-calendar-alt mr-1"></i> Sin jornada</span>
+            <button id="logoutBtnRepartidor" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition"><i class="fas fa-sign-out-alt mr-2"></i>Salir</button>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="flex flex-wrap gap-2 mb-6">
+        <button id="tabPedidosDisponibles" class="glass-card px-6 py-3 font-semibold text-gray-700 hover:shadow-lg transition-all flex items-center gap-2 bg-blue-600 text-white shadow-lg"><i class="fas fa-list-alt"></i> Pedidos Disponibles</button>
+        <button id="tabMisPedidos" class="glass-card px-6 py-3 font-semibold text-gray-700 hover:shadow-lg transition-all flex items-center gap-2"><i class="fas fa-tasks"></i> Mis Pedidos</button>
+        <button id="tabJornada" class="glass-card px-6 py-3 font-semibold text-gray-700 hover:shadow-lg transition-all flex items-center gap-2"><i class="fas fa-calendar-check"></i> Mi Jornada</button>
+        <button id="tabPagos" class="glass-card px-6 py-3 font-semibold text-gray-700 hover:shadow-lg transition-all flex items-center gap-2"><i class="fas fa-dollar-sign"></i> Pagos</button>
+    </div>
+
+    <!-- PEDIDOS DISPONIBLES -->
+    <div id="seccionPedidosDisponibles" class="glass-card p-6">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800"><i class="fas fa-map-marker-alt mr-2 text-green-600"></i>Pedidos cercanos disponibles</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100 rounded-xl">
+                    <tr><th class="p-3">#Pedido</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Distancia</th><th>Precio</th><th>Ganancia</th><th>Acción</th></tr>
+                </thead>
+                <tbody id="disponiblesTable"></tr><td colspan="8" class="text-center p-8"><div class="loading-spinner mx-auto"></div></td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MIS PEDIDOS (asignados) -->
+    <div id="seccionMisPedidos" class="glass-card p-6 hidden">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800"><i class="fas fa-tasks mr-2 text-blue-600"></i>Mis pedidos activos</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100"><tr><th>#</th><th>Tipo</th><th>Cliente</th><th>Contacto</th><th>Estado</th><th>Precio</th><th>Acciones</th></tr></thead>
+                <tbody id="misPedidosTable"><tr><td colspan="7" class="text-center p-8">Cargando...</td></td></tbody>
+            </table>
+        </div>
+        <div id="mapaPedidoActivo" class="mt-4 hidden">
+            <h3 class="font-bold mb-2">📍 Ruta actual del pedido</h3>
+            <div id="mapaRuta" class="map-container"></div>
+        </div>
+    </div>
+
+    <!-- JORNADA -->
+    <div id="seccionJornada" class="glass-card p-6 hidden">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800"><i class="fas fa-calendar-alt mr-2"></i>Mi jornada laboral</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-gray-50 rounded-xl p-5">
+                <div class="text-center">
+                    <div id="jornadaEstadoActual" class="text-xl font-bold mb-3">📌 Sin jornada activa</div>
+                    <button id="btnIniciarJornada" class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold w-full"><i class="fas fa-play"></i> Iniciar Jornada</button>
+                    <button id="btnFinalizarJornada" class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold w-full mt-2 hidden"><i class="fas fa-stop"></i> Finalizar Jornada</button>
+                </div>
+                <div class="mt-4 border-t pt-4">
+                    <p><strong>💰 Ganancias hoy:</strong> $<span id="gananciasHoy">0</span></p>
+                    <p><strong>📦 Pedidos entregados hoy:</strong> <span id="pedidosHoy">0</span></p>
+                    <p><strong>🏦 Comisión a pagar (25%):</strong> $<span id="comisionPagar">0</span></p>
+                </div>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-5">
+                <h3 class="font-bold mb-2">📋 Resumen de ganancias últimas jornadas</h3>
+                <div class="overflow-y-auto max-h-48" id="historialJornadas"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGOS -->
+    <div id="seccionPagos" class="glass-card p-6 hidden">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800"><i class="fas fa-dollar-sign mr-2 text-yellow-600"></i>Historial de pagos</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100"><tr><th>Jornada</th><th>Monto total</th><th>Comisión</th><th>Monto a pagar</th><th>Estado</th><th>Fecha límite</th><th>Comprobante</th></tr></thead>
+                <tbody id="pagosTable"><tr><td colspan="7" class="text-center p-8">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar entrega -->
+<div id="modalConfirmarEntrega" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md">
+        <h3 class="text-xl font-bold mb-4">✅ Confirmar entrega</h3>
+        <p class="mb-2">Ingresa el nombre del destinatario para confirmar:</p>
+        <input type="text" id="confirmarNombre" placeholder="Nombre completo" class="w-full p-3 border rounded-xl mb-4">
+        <input type="hidden" id="confirmarPedidoId">
+        <div class="flex gap-2">
+            <button id="btnConfirmarEntregaModal" class="bg-green-600 text-white px-4 py-2 rounded flex-1">Confirmar</button>
+            <button id="btnCancelarModal" class="bg-gray-300 px-4 py-2 rounded flex-1">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // CONFIGURACIÓN SUPABASE
+    // CONFIGURACIÓN SUPABASE
+const SUPABASE_URL = "https://kjbesbtvgmtuffgmzaaw.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_xbe-EzT66Ww36li0dM9iVw_5zHWyBTZ";
+let supabase = null;
+let currentUser = null;
+let currentProfile = null;
+let jornadaActiva = null;
+let mapRuta = null;
+let routingControl = null;
+
+// Inicializar
+async function init() {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // ✅ FORZAR VERIFICACIÓN DE SESIÓN CON REINTENTO
+    let session = null;
+    let intentos = 0;
+    
+    while (!session && intentos < 5) {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+            console.error("Error obteniendo sesión:", error);
+        }
+        session = data.session;
+        if (!session && intentos < 4) {
+            console.log(`Intento ${intentos + 1}: No hay sesión, esperando 500ms...`);
+            await new Promise(r => setTimeout(r, 500));
+        }
+        intentos++;
+    }
+    
+    if (!session) {
+        alert("No hay sesión activa. Inicia sesión nuevamente.");
+        window.location.href = "/login.html";
+        return false;
+    }
+    
+    console.log("✅ Sesión encontrada:", session.user.id);
+    currentUser = session.user;
+    
+    const { data: perfil, error: perfilErr } = await supabase
+        .from('perfiles')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .single();
+    
+    if (perfilErr || perfil?.rol !== 'repartidor') {
+        alert("Acceso denegado. Esta sección es solo para repartidores.");
+        window.location.href = "/login.html";
+        return false;
+    }
+    
+    currentProfile = perfil;
+    document.getElementById('userNameDisplay').innerHTML = `<i class="fas fa-motorcycle mr-2"></i>${perfil.nombre}`;
+    
+    await cargarJornadaActiva();
+    await cargarPedidosDisponibles();
+    await cargarMisPedidos();
+    await cargarPagos();
+    await cargarHistorialJornadas();
+    
+    return true;
+}
+
+// ✅ CORREGIDO: usar maybeSingle() en lugar de single()
+async function cargarJornadaActiva() {
+    const { data, error } = await supabase
+        .from('jornadas_repartidor')
+        .select('*')
+        .eq('repartidor_id', currentProfile.id)
+        .eq('estado', 'activa')
+        .maybeSingle();  // ✅ CAMBIADO: .single() -> .maybeSingle()
+    
+    if (data) {
+        jornadaActiva = data;
+        document.getElementById('jornadaEstadoActual').innerHTML = '🟢 Jornada activa';
+        document.getElementById('btnIniciarJornada').classList.add('hidden');
+        document.getElementById('btnFinalizarJornada').classList.remove('hidden');
+        document.getElementById('jornadaStatus').innerHTML = `<i class="fas fa-play-circle mr-1"></i> Jornada activa`;
+        await actualizarResumenJornada();
+    } else {
+        jornadaActiva = null;
+        document.getElementById('jornadaEstadoActual').innerHTML = '🔴 Sin jornada activa';
+        document.getElementById('btnIniciarJornada').classList.remove('hidden');
+        document.getElementById('btnFinalizarJornada').classList.add('hidden');
+        document.getElementById('jornadaStatus').innerHTML = `<i class="fas fa-stop-circle mr-1"></i> Sin jornada`;
+    }
+}
+
+async function actualizarResumenJornada() {
+    if (!jornadaActiva) return;
+    const { data: pedidos } = await supabase
+        .from('pedidos')
+        .select('precio_total, comision_web')
+        .eq('repartidor_id', currentProfile.id)
+        .eq('estado', 'entregado')
+        .gte('fecha_entrega', jornadaActiva.fecha_inicio);
+    
+    let ganancias = 0;
+    let comision = 0;
+    pedidos?.forEach(p => {
+        ganancias += (p.precio_total - (p.comision_web || 0));
+        comision += (p.comision_web || 0);
+    });
+    
+    document.getElementById('gananciasHoy').innerText = ganancias.toFixed(2);
+    document.getElementById('pedidosHoy').innerText = pedidos?.length || 0;
+    document.getElementById('comisionPagar').innerText = comision.toFixed(2);
+    
+    if (jornadaActiva) {
+        await supabase
+            .from('jornadas_repartidor')
+            .update({ total_ganancias: ganancias, comision_pagar: comision })
+            .eq('id', jornadaActiva.id);
+    }
+}
+
+async function iniciarJornada() {
+    const { data, error } = await supabase
+        .from('jornadas_repartidor')
+        .insert({ repartidor_id: currentProfile.id, estado: 'activa' })
+        .select()
+        .single();
+    
+    if (error) {
+        alert("Error al iniciar jornada: " + error.message);
+        return;
+    }
+    jornadaActiva = data;
+    await cargarJornadaActiva();
+    alert("✅ Jornada iniciada exitosamente");
+}
+
+async function finalizarJornada() {
+    if (!jornadaActiva) return;
+    const { error } = await supabase
+        .from('jornadas_repartidor')
+        .update({ estado: 'finalizada', fecha_fin: new Date().toISOString() })
+        .eq('id', jornadaActiva.id);
+    
+    if (error) {
+        alert("Error al finalizar jornada");
+        return;
+    }
+    await generarPagoDiario();
+    jornadaActiva = null;
+    await cargarJornadaActiva();
+    alert("🏁 Jornada finalizada. Se ha generado el pago correspondiente.");
+    cargarHistorialJornadas();
+    cargarPagos();
+}
+
+async function generarPagoDiario() {
+    const { data, error } = await supabase.rpc('generar_pago_diario');
+    if (error) console.error("Error generando pago:", error);
+    return data;
+}
+
+async function cargarPedidosDisponibles() {
+    const { data: pedidos, error } = await supabase
+        .from('pedidos')
+        .select('*, cliente:cliente_id(nombre, telefono)')
+        .eq('estado', 'pendiente')
+        .eq('activo', true)
+        .order('fecha_creacion', { ascending: true });
+    
+    if (error) return;
+    
+    const tbody = document.getElementById('disponiblesTable');
+    if (!pedidos || pedidos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center p-8 text-gray-500">📭 No hay pedidos disponibles ahora</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = pedidos.map(p => {
+        const ganancia = p.precio_total * 0.75;
+        return `<tr class="border-b">
+            <td class="p-3 font-mono">#${p.numero_pedido}</td>
+            <td class="p-3">${p.tipo === 'envio' ? '📦 Envío' : '🏠 Recepción'}</td>
+            <td class="p-3 truncate max-w-[150px]">${p.nombre_contacto || '-'}</td>
+            <td class="p-3 truncate max-w-[150px]">${p.telefono_contacto}</td>
+            <td class="p-3">${p.distancia_km ? p.distancia_km + ' km' : '-'}</td>
+            <td class="p-3 font-bold">$${p.precio_total?.toFixed(2)}</td>
+            <td class="p-3 text-green-600 font-bold">$${ganancia.toFixed(2)}</td>
+            <td class="p-3"><button class="tomarPedidoBtn bg-blue-600 text-white px-3 py-1 rounded-lg text-sm" data-id="${p.id}"><i class="fas fa-hand-paper"></i> Tomar</button></td>
+         </tr>`;
+    }).join('');
+    
+    document.querySelectorAll('.tomarPedidoBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            if (!jornadaActiva) {
+                alert("⚠️ Debes iniciar tu jornada primero");
+                return;
+            }
+            const { data, error } = await supabase.rpc('tomar_pedido', { p_pedido_id: id });
+            if (error) {
+                alert("Error: " + error.message);
+            } else if (data?.success) {
+                alert("✅ Pedido tomado exitosamente");
+                cargarPedidosDisponibles();
+                cargarMisPedidos();
+            } else {
+                alert(data?.error || "No se pudo tomar el pedido");
+            }
+        });
+    });
+}
+
+async function cargarMisPedidos() {
+    const { data: pedidos, error } = await supabase
+        .from('pedidos')
+        .select('*, cliente:cliente_id(nombre, telefono)')
+        .eq('repartidor_id', currentProfile.id)
+        .in('estado', ['pendiente', 'en_camino'])
+        .order('fecha_tomado', { ascending: false });
+    
+    if (error) return;
+    
+    const tbody = document.getElementById('misPedidosTable');
+    if (!pedidos || pedidos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center p-8 text-gray-500">📋 No tienes pedidos asignados</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = pedidos.map(p => `
+        <tr class="border-b">
+            <td class="p-3 font-mono">#${p.numero_pedido}</td>
+            <td class="p-3">${p.tipo === 'envio' ? '📦 Envío' : '🏠 Recepción'}</td>
+            <td class="p-3">${p.cliente?.nombre || '-'}</td>
+            <td class="p-3">${p.nombre_contacto}<br><small class="text-xs">${p.telefono_contacto}</small></td>
+            <td class="p-3"><span class="px-2 py-1 rounded-full text-xs ${p.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}">${p.estado === 'pendiente' ? 'Pendiente' : 'En camino'}</span></td>
+            <td class="p-3 font-bold">$${p.precio_total?.toFixed(2)}</td>
+            <td class="p-3">
+                ${p.estado === 'en_camino' ? 
+                    `<button class="confirmarEntregaBtn bg-green-600 text-white px-3 py-1 rounded-lg text-sm" data-id="${p.id}" data-nombre="${p.nombre_contacto}"><i class="fas fa-check-circle"></i> Confirmar entrega</button>` :
+                    `<button class="iniciarEntregaBtn bg-blue-600 text-white px-3 py-1 rounded-lg text-sm" data-id="${p.id}"><i class="fas fa-play"></i> Iniciar entrega</button>`
+                }
+            </td>
+         </tr>
+    `).join('');
+    
+    document.querySelectorAll('.iniciarEntregaBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            const { data, error } = await supabase.rpc('iniciar_entrega', { p_pedido_id: id });
+            if (error) alert("Error: " + error.message);
+            else if (data?.success) {
+                alert("🚚 Entrega iniciada");
+                cargarMisPedidos();
+                mostrarRutaPedido(id);
+            }
+        });
+    });
+    
+    document.querySelectorAll('.confirmarEntregaBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const nombreEsperado = btn.dataset.nombre;
+            document.getElementById('confirmarPedidoId').value = id;
+            document.getElementById('confirmarNombre').value = '';
+            document.getElementById('confirmarNombre').placeholder = `Nombre: ${nombreEsperado}`;
+            document.getElementById('modalConfirmarEntrega').classList.remove('hidden');
+        });
+    });
+}
+
+// Confirmar entrega modal
+document.getElementById('btnConfirmarEntregaModal')?.addEventListener('click', async () => {
+    const pedidoId = document.getElementById('confirmarPedidoId').value;
+    const nombreConfirmado = document.getElementById('confirmarNombre').value.trim();
+    if (!nombreConfirmado) {
+        alert("Ingresa el nombre del destinatario");
+        return;
+    }
+    const { data, error } = await supabase.rpc('confirmar_entrega', { 
+        p_pedido_id: pedidoId, 
+        p_nombre_confirmado: nombreConfirmado 
+    });
+    
+    if (error) alert("Error: " + error.message);
+    else if (data?.success) {
+        alert(`✅ Entrega confirmada! Ganancia: $${data.ganancia}`);
+        document.getElementById('modalConfirmarEntrega').classList.add('hidden');
+        cargarMisPedidos();
+        cargarPedidosDisponibles();
+        actualizarResumenJornada();
+        cargarHistorialJornadas();
+    } else {
+        alert(data?.error || "Error al confirmar entrega");
+    }
+});
+
+document.getElementById('btnCancelarModal')?.addEventListener('click', () => {
+    document.getElementById('modalConfirmarEntrega').classList.add('hidden');
+});
+
+async function mostrarRutaPedido(pedidoId) {
+    const { data: pedido, error } = await supabase
+        .from('pedidos')
+        .select('punto_a_id, punto_b_id')
+        .eq('id', pedidoId)
+        .single();
+    
+    if (error || !pedido) return;
+    
+    const { data: puntoA } = await supabase.from('ubicaciones').select('latitud, longitud').eq('id', pedido.punto_a_id).maybeSingle();
+    const { data: puntoB } = await supabase.from('ubicaciones').select('latitud, longitud').eq('id', pedido.punto_b_id).maybeSingle();
+    
+    if (puntoA && puntoB) {
+        document.getElementById('mapaPedidoActivo').classList.remove('hidden');
+        if (mapRuta) mapRuta.remove();
+        mapRuta = L.map('mapaRuta').setView([puntoA.latitud, puntoA.longitud], 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapRuta);
+        L.marker([puntoA.latitud, puntoA.longitud]).bindPopup('📍 Origen').addTo(mapRuta);
+        L.marker([puntoB.latitud, puntoB.longitud]).bindPopup('🎯 Destino').addTo(mapRuta);
+        
+        if (routingControl) mapRuta.removeControl(routingControl);
+        routingControl = L.Routing.control({
+            waypoints: [L.latLng(puntoA.latitud, puntoA.longitud), L.latLng(puntoB.latitud, puntoB.longitud)],
+            routeWhileDragging: false,
+            show: false,
+            lineOptions: { styles: [{ color: '#3b82f6', weight: 5 }] }
+        }).addTo(mapRuta);
+    }
+}
+
+// ✅ CORREGIDO: quitar referencia a clase CSS inexistente
+async function cargarHistorialJornadas() {
+    const { data: jornadas, error } = await supabase
+        .from('jornadas_repartidor')
+        .select('*')
+        .eq('repartidor_id', currentProfile.id)
+        .order('fecha_inicio', { ascending: false })
+        .limit(10);
+    
+    if (error) return;
+    const container = document.getElementById('historialJornadas');
+    if (!jornadas || jornadas.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">No hay jornadas previas</p>';
+        return;
+    }
+    container.innerHTML = jornadas.map(j => `
+        <div class="border-b py-2 text-sm">
+            <div class="flex justify-between">
+                <span>📅 ${new Date(j.fecha_inicio).toLocaleDateString()}</span>
+                <span class="px-2 py-0.5 rounded-full text-xs ${j.estado === 'activa' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">${j.estado}</span>
+            </div>
+            <div class="flex justify-between mt-1">
+                <span>💰 $${(j.total_ganancias || 0).toFixed(2)}</span>
+                <span>🏦 Comisión: $${(j.comision_pagar || 0).toFixed(2)}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function cargarPagos() {
+    const { data: pagos, error } = await supabase
+        .from('pagos_repartidor')
+        .select('*, jornada:jornada_id(fecha_inicio)')
+        .eq('repartidor_id', currentProfile.id)
+        .order('created_at', { ascending: false });
+    
+    if (error) return;
+    const tbody = document.getElementById('pagosTable');
+    if (!pagos || pagos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center p-8">No hay pagos registrados</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = pagos.map(p => `
+        <tr class="border-b">
+            <td class="p-3">${p.jornada ? new Date(p.jornada.fecha_inicio).toLocaleDateString() : '-'}</td>
+            <td class="p-3">$${(p.monto_total || 0).toFixed(2)}</td>
+            <td class="p-3">$${(p.comision_web || 0).toFixed(2)}</td>
+            <td class="p-3 font-bold">$${(p.monto_pagar || 0).toFixed(2)}</td>
+            <td class="p-3"><span class="px-2 py-1 rounded-full text-xs ${p.estado === 'pagado' ? 'bg-green-100 text-green-700' : p.estado === 'vencido' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">${p.estado}</span></td>
+            <td class="p-3">${p.fecha_limite_pago ? new Date(p.fecha_limite_pago).toLocaleDateString() : '-'}</td>
+            <td class="p-3">${p.comprobante_url ? '<a href="#" class="text-blue-600">Ver</a>' : '-'}</td>
+         </tr>
+    `).join('');
+}
+
+function setupTabs() {
+    const tabs = [
+        { id: 'tabPedidosDisponibles', seccion: 'seccionPedidosDisponibles', action: () => cargarPedidosDisponibles() },
+        { id: 'tabMisPedidos', seccion: 'seccionMisPedidos', action: () => { cargarMisPedidos(); if(mapRuta) mapRuta.remove(); } },
+        { id: 'tabJornada', seccion: 'seccionJornada', action: () => { cargarJornadaActiva(); cargarHistorialJornadas(); } },
+        { id: 'tabPagos', seccion: 'seccionPagos', action: () => cargarPagos() }
+    ];
+    
+    tabs.forEach(tab => {
+        const btn = document.getElementById(tab.id);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[id^="seccion"]').forEach(s => s.classList.add('hidden'));
+                document.getElementById(tab.seccion).classList.remove('hidden');
+                tabs.forEach(t => {
+                    const tBtn = document.getElementById(t.id);
+                    if (tBtn) {
+                        tBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
+                        tBtn.classList.add('bg-gray-200', 'text-gray-700');
+                    }
+                });
+                btn.classList.remove('bg-gray-200', 'text-gray-700');
+                btn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
+                if (tab.action) tab.action();
+            });
+        }
+    });
+}
+
+// Eventos de jornada
+document.getElementById('btnIniciarJornada')?.addEventListener('click', iniciarJornada);
+document.getElementById('btnFinalizarJornada')?.addEventListener('click', finalizarJornada);
+document.getElementById('logoutBtnRepartidor')?.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login.html";
+});
+
+// Inicio
+(async () => {
+    const ok = await init();
+    if (ok) {
+        setupTabs();
+    }
+})();
+</script>
+</body>
+</html>

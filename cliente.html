@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PediFlash - Cliente</title>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .map-container {
+            height: 400px;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            border: 2px solid var(--gray-200);
+            z-index: 1;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--gray-200);
+            transition: all 0.2s;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .btn-outline { background: white; color: var(--gray-700); border: 2px solid var(--gray-300); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: white;
+        }
+        .input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-pendiente { background: #fef3c7; color: #92400e; }
+        .badge-en_camino { background: #dbeafe; color: #1e40af; }
+        .badge-entregado { background: #d1fae5; color: #065f46; }
+        .badge-cancelado { background: #fee2e2; color: #991b1b; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 1rem;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .pulse { animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+
+        @media (max-width: 640px) {
+            .map-container { height: 300px; }
+            .btn { padding: 0.625rem 1rem; font-size: 0.875rem; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+
+        .loader {
+            width: 24px; height: 24px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-motorcycle text-2xl" style="color: var(--primary);"></i>
+                <span class="text-xl font-bold hidden sm:inline" style="color: var(--gray-800);">PediFlash</span>
+            </div>
+            <div class="flex items-center gap-3" id="userArea">
+                <span id="userName" class="text-sm font-medium hidden sm:inline"></span>
+                <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user text-indigo-600"></i>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-4">
+        <div id="loadingScreen" class="text-center py-20">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-500">Cargando...</p>
+        </div>
+
+        <div id="dashboardScreen" class="hidden fade-in">
+            <div class="text-center mb-6">
+                <button onclick="showNewOrder()" class="btn btn-primary pulse text-lg px-8 py-4">
+                    <i class="fas fa-plus-circle"></i> Nuevo Pedido
+                </button>
+            </div>
+
+            <div class="flex gap-1 border-b border-gray-200 mb-6 overflow-x-auto">
+                <div class="tab active" onclick="switchTab('activos', this)" id="tabActivos"><i class="fas fa-clock"></i> Activos</div>
+                <div class="tab" onclick="switchTab('historial', this)" id="tabHistorial"><i class="fas fa-history"></i> Historial</div>
+                <div class="tab" onclick="switchTab('perfil', this)" id="tabPerfil"><i class="fas fa-user"></i> Perfil</div>
+            </div>
+
+            <div id="tabContent">
+                <div id="activosContent">
+                    <div id="pedidosActivos" class="space-y-4"></div>
+                    <div id="noPedidosActivos" class="text-center text-gray-500 py-10 hidden">
+                        <i class="fas fa-inbox text-4xl mb-3"></i>
+                        <p>No tienes pedidos activos</p>
+                    </div>
+                </div>
+                <div id="historialContent" class="hidden">
+                    <div id="pedidosHistorial" class="space-y-4"></div>
+                    <div id="noHistorial" class="text-center text-gray-500 py-10 hidden">
+                        <i class="fas fa-archive text-4xl mb-3"></i>
+                        <p>No tienes pedidos anteriores</p>
+                    </div>
+                </div>
+                <div id="perfilContent" class="hidden">
+                    <div class="card max-w-lg mx-auto">
+                        <h3 class="text-xl font-bold mb-4">Mi Perfil</h3>
+                        <div class="space-y-3" id="perfilInfo"></div>
+                        <button onclick="cerrarSesion()" class="btn btn-outline w-full mt-4 justify-center text-red-600 border-red-300">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Nuevo Pedido -->
+    <div id="newOrderModal" class="modal-overlay hidden">
+        <div class="modal slide-up">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold">Nuevo Pedido</h3>
+                    <button onclick="closeNewOrder()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                </div>
+
+                <div id="tipoPedidoSelection" class="mb-6">
+                    <p class="text-sm font-semibold text-gray-700 mb-3">¿Qué deseas hacer?</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="seleccionarTipo('envio')" id="btnEnvio" class="btn btn-outline justify-center py-8 flex-col">
+                            <i class="fas fa-paper-plane text-3xl mb-2"></i>
+                            <span class="font-bold">Enviar</span>
+                            <span class="text-xs text-gray-500">Enviar un paquete</span>
+                        </button>
+                        <button onclick="seleccionarTipo('recepcion')" id="btnRecepcion" class="btn btn-outline justify-center py-8 flex-col">
+                            <i class="fas fa-box-open text-3xl mb-2"></i>
+                            <span class="font-bold">Recibir</span>
+                            <span class="text-xs text-gray-500">Recoger un paquete</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="orderForm" class="hidden">
+                    <div class="map-container mb-4" id="orderMap"></div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700">
+                                <i class="fas fa-map-marker-alt text-indigo-500"></i> Punto A (<span id="labelPuntoA">Origen</span>)
+                            </label>
+                            <input type="text" id="direccionA" class="input mt-1" placeholder="Tu ubicación actual" readonly>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700">
+                                <i class="fas fa-flag-checkered text-red-500"></i> Punto B (<span id="labelPuntoB">Destino</span>)
+                            </label>
+                            <input type="text" id="direccionB" class="input mt-1" placeholder="Toca el mapa para seleccionar" readonly>
+                            <p class="text-xs text-gray-500 mt-1">Toca en el mapa para seleccionar el punto B</p>
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700">Nombre del contacto</label>
+                            <input type="text" id="nombreContacto" class="input mt-1" placeholder="Nombre de quien recibe/entrega">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700">Teléfono del contacto</label>
+                            <input type="tel" id="telefonoContacto" class="input mt-1" placeholder="Teléfono (10 dígitos)">
+                        </div>
+                        <div id="orderResumen" class="hidden bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-bold mb-2">Resumen del pedido</h4>
+                            <div class="space-y-1 text-sm">
+                                <p>Distancia: <span id="resumenDistancia" class="font-bold">--</span> km</p>
+                                <p>Tiempo estimado: <span id="resumenTiempo" class="font-bold">--</span> min</p>
+                                <p class="text-lg font-bold mt-2">Total: $<span id="resumenPrecio">--</span> MXN</p>
+                            </div>
+                        </div>
+                        <button onclick="crearPedido()" class="btn btn-success w-full justify-center" id="btnCrearPedido">
+                            <i class="fas fa-check-circle"></i> Confirmar Pedido
+                        </button>
+                    </div>
+                </div>
+
+                <div id="orderLoading" class="hidden text-center py-8">
+                    <div class="loader mx-auto mb-3"></div>
+                    <p class="text-gray-500">Creando pedido...</p>
+                </div>
+                <div id="orderSuccess" class="hidden text-center py-8">
+                    <i class="fas fa-check-circle text-5xl text-green-500 mb-3"></i>
+                    <h4 class="text-xl font-bold">¡Pedido Creado!</h4>
+                    <p class="text-gray-500">Pedido #<span id="orderNumero"></span></p>
+                    <p class="text-sm text-gray-400 mt-2">Un repartidor tomará tu pedido pronto</p>
+                    <button onclick="closeNewOrder(); cargarPedidos();" class="btn btn-primary mt-4">Aceptar</button>
+                </div>
+                <div id="orderError" class="hidden text-center py-8">
+                    <i class="fas fa-exclamation-circle text-5xl text-red-500 mb-3"></i>
+                    <p class="text-red-600" id="orderErrorMsg"></p>
+                    <button onclick="resetOrderForm()" class="btn btn-outline mt-4">Intentar de nuevo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cancelar -->
+    <div id="cancelModal" class="modal-overlay hidden">
+        <div class="modal slide-up p-6 max-w-sm">
+            <h4 class="text-lg font-bold mb-3">¿Cancelar pedido?</h4>
+            <p class="text-gray-600 mb-4">Esta acción no se puede deshacer</p>
+            <div class="flex gap-3">
+                <button onclick="confirmarCancelar()" class="btn btn-danger flex-1 justify-center">Sí, cancelar</button>
+                <button onclick="document.getElementById('cancelModal').classList.add('hidden')" class="btn btn-outline flex-1 justify-center">No</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="pedidoCancelarId">
+
+    <script>
+    const SUPABASE_URL = 'https://kjbesbtvgmtuffgmzaaw.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_xbe-EzT66Ww36li0dM9iVw_5zHWyBTZ';
+    const ROUTE_API = 'https://app-maps-y2v2.vercel.app/api';
+    const PRECIO_POR_KM = 20;
+
+    var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let perfilActual = null;
+    let mapaPedido = null;
+    let puntoA = null;
+    let puntoB = null;
+    let marcadorA = null;
+    let marcadorB = null;
+    let tipoPedido = null;
+    let capaRuta = null;
+    let suscripcionPedidos = null;
+    let distanciaPorCalles = 0;
+    let precioCalculado = 0;
+
+    // ============ INICIALIZACIÓN ============
+    document.addEventListener('DOMContentLoaded', async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { window.location.href = 'index.html'; return; }
+        await cargarPerfil();
+        mostrarDashboard();
+        suscribirCambios();
+    });
+
+    async function cargarPerfil() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const { data, error } = await supabase.from('perfiles').select('*').eq('user_id', session.user.id).single();
+        if (error) { console.error('Error cargando perfil:', error); return; }
+        perfilActual = data;
+    }
+
+    function mostrarDashboard() {
+        document.getElementById('loadingScreen').classList.add('hidden');
+        document.getElementById('dashboardScreen').classList.remove('hidden');
+        document.getElementById('userName').textContent = perfilActual?.nombre || 'Usuario';
+        cargarPedidos();
+    }
+
+    function cerrarSesion() {
+        supabase.auth.signOut().then(() => { window.location.href = 'index.html'; });
+    }
+
+    function switchTab(tab, element) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        element.classList.add('active');
+        document.getElementById('activosContent').classList.add('hidden');
+        document.getElementById('historialContent').classList.add('hidden');
+        document.getElementById('perfilContent').classList.add('hidden');
+        if (tab === 'activos') { document.getElementById('activosContent').classList.remove('hidden'); cargarPedidos(); }
+        else if (tab === 'historial') { document.getElementById('historialContent').classList.remove('hidden'); cargarHistorial(); }
+        else if (tab === 'perfil') { document.getElementById('perfilContent').classList.remove('hidden'); mostrarPerfil(); }
+    }
+
+    function mostrarPerfil() {
+        const p = perfilActual;
+        if (!p) return;
+        document.getElementById('perfilInfo').innerHTML = `
+            <p><strong>Nombre:</strong> ${p.nombre || '-'}</p>
+            <p><strong>Email:</strong> ${p.email || '-'}</p>
+            <p><strong>Teléfono:</strong> ${p.telefono || '-'}</p>
+            <p><strong>Calificación:</strong> ⭐ ${p.calificacion || '5.0'}</p>
+            <p><strong>Miembro desde:</strong> ${new Date(p.created_at).toLocaleDateString('es-MX')}</p>`;
+    }
+
+    async function cargarPedidos() {
+        if (!perfilActual) return;
+        const activosDiv = document.getElementById('pedidosActivos');
+        const noActivosDiv = document.getElementById('noPedidosActivos');
+        const { data, error } = await supabase.from('pedidos').select(`
+            *, repartidor:repartidor_id(nombre, telefono),
+            punto_a:punto_a_id(latitud, longitud), punto_b:punto_b_id(latitud, longitud)
+        `).eq('cliente_id', perfilActual.id).in('estado', ['pendiente', 'en_camino']).eq('activo', true).order('fecha_creacion', { ascending: false });
+        if (error) return;
+        if (!data || data.length === 0) { activosDiv.innerHTML = ''; noActivosDiv.classList.remove('hidden'); return; }
+        noActivosDiv.classList.add('hidden');
+        activosDiv.innerHTML = data.map(p => tarjetaPedido(p)).join('');
+    }
+
+    async function cargarHistorial() {
+        if (!perfilActual) return;
+        const historialDiv = document.getElementById('pedidosHistorial');
+        const noHistorialDiv = document.getElementById('noHistorial');
+        const { data, error } = await supabase.from('pedidos').select(`
+            *, repartidor:repartidor_id(nombre, telefono),
+            punto_a:punto_a_id(latitud, longitud), punto_b:punto_b_id(latitud, longitud)
+        `).eq('cliente_id', perfilActual.id).in('estado', ['entregado', 'cancelado']).order('fecha_creacion', { ascending: false }).limit(50);
+        if (error) return;
+        if (!data || data.length === 0) { historialDiv.innerHTML = ''; noHistorialDiv.classList.remove('hidden'); return; }
+        noHistorialDiv.classList.add('hidden');
+        historialDiv.innerHTML = data.map(p => tarjetaPedido(p)).join('');
+    }
+
+    function tarjetaPedido(pedido) {
+        const estadoClass = `badge-${pedido.estado}`;
+        const estadoTexto = pedido.estado.replace('_', ' ');
+        const fecha = new Date(pedido.fecha_creacion).toLocaleString('es-MX');
+        const puedeCancelar = pedido.estado === 'pendiente';
+        let repartidorHTML = '';
+        if (pedido.repartidor) {
+            repartidorHTML = `<div class="mt-2 text-sm"><i class="fas fa-motorcycle text-indigo-500"></i> Repartidor: ${pedido.repartidor.nombre || 'Asignado'}</div>`;
+        }
+        return `
+            <div class="card">
+                <div class="flex justify-between items-start mb-3">
+                    <div><span class="text-xs text-gray-400">#${pedido.numero_pedido}</span><span class="badge ${estadoClass} ml-2">${estadoTexto}</span></div>
+                    <span class="text-xs text-gray-400">${fecha}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                    <div><span class="text-gray-500">Tipo:</span> <strong>${pedido.tipo === 'envio' ? '📤 Envío' : '📥 Recepción'}</strong></div>
+                    <div><span class="text-gray-500">Distancia:</span> <strong>${pedido.distancia_km} km</strong></div>
+                    <div><span class="text-gray-500">Contacto:</span> <strong>${pedido.nombre_contacto}</strong></div>
+                    <div><span class="text-gray-500">Precio:</span> <strong class="text-lg">$${pedido.precio_total} MXN</strong></div>
+                </div>
+                ${repartidorHTML}
+                <div class="mt-3 flex gap-2">
+                    ${pedido.punto_a ? `<button onclick="verEnMapa(${pedido.punto_a.latitud}, ${pedido.punto_a.longitud}, ${pedido.punto_b?.latitud || pedido.punto_a.latitud}, ${pedido.punto_b?.longitud || pedido.punto_a.longitud})" class="btn btn-outline text-sm flex-1 justify-center"><i class="fas fa-map"></i> Ver ruta</button>` : ''}
+                    ${puedeCancelar ? `<button onclick="cancelarPedido('${pedido.id}')" class="btn btn-outline text-sm justify-center text-red-500 border-red-300"><i class="fas fa-times"></i> Cancelar</button>` : ''}
+                </div>
+            </div>`;
+    }
+
+    function cancelarPedido(id) {
+        document.getElementById('pedidoCancelarId').value = id;
+        document.getElementById('cancelModal').classList.remove('hidden');
+    }
+
+    async function confirmarCancelar() {
+        const id = document.getElementById('pedidoCancelarId').value;
+        const { error } = await supabase.from('pedidos').update({
+            estado: 'cancelado', fecha_cancelacion: new Date().toISOString(), activo: false
+        }).eq('id', id).eq('cliente_id', perfilActual.id);
+        document.getElementById('cancelModal').classList.add('hidden');
+        if (!error) cargarPedidos();
+    }
+
+    function showNewOrder() {
+        document.getElementById('newOrderModal').classList.remove('hidden');
+        document.getElementById('tipoPedidoSelection').classList.remove('hidden');
+        document.getElementById('orderForm').classList.add('hidden');
+        document.getElementById('orderLoading').classList.add('hidden');
+        document.getElementById('orderSuccess').classList.add('hidden');
+        document.getElementById('orderError').classList.add('hidden');
+        document.getElementById('orderResumen').classList.add('hidden');
+        tipoPedido = null; puntoA = null; puntoB = null; distanciaPorCalles = 0; precioCalculado = 0;
+        document.getElementById('btnEnvio').style.borderColor = 'var(--gray-300)';
+        document.getElementById('btnEnvio').style.backgroundColor = 'white';
+        document.getElementById('btnRecepcion').style.borderColor = 'var(--gray-300)';
+        document.getElementById('btnRecepcion').style.backgroundColor = 'white';
+    }
+
+    function closeNewOrder() {
+        document.getElementById('newOrderModal').classList.add('hidden');
+        if (mapaPedido) { mapaPedido.remove(); mapaPedido = null; }
+        marcadorA = null; marcadorB = null; capaRuta = null; distanciaPorCalles = 0; precioCalculado = 0;
+    }
+
+    async function seleccionarTipo(tipo) {
+        tipoPedido = tipo;
+        const btnEnvio = document.getElementById('btnEnvio');
+        const btnRecepcion = document.getElementById('btnRecepcion');
+        if (tipo === 'envio') {
+            btnEnvio.style.borderColor = 'var(--primary)'; btnEnvio.style.backgroundColor = '#eef2ff';
+            btnRecepcion.style.borderColor = 'var(--gray-300)'; btnRecepcion.style.backgroundColor = 'white';
+            document.getElementById('labelPuntoA').textContent = 'Origen (donde recoges)';
+            document.getElementById('labelPuntoB').textContent = 'Destino (donde entregas)';
+        } else {
+            btnRecepcion.style.borderColor = 'var(--primary)'; btnRecepcion.style.backgroundColor = '#eef2ff';
+            btnEnvio.style.borderColor = 'var(--gray-300)'; btnEnvio.style.backgroundColor = 'white';
+            document.getElementById('labelPuntoA').textContent = 'Origen (tu ubicación)';
+            document.getElementById('labelPuntoB').textContent = 'Recogida (donde recoges el paquete)';
+        }
+        document.getElementById('tipoPedidoSelection').classList.add('hidden');
+        document.getElementById('orderForm').classList.remove('hidden');
+        setTimeout(iniciarMapaPedido, 300);
+    }
+
+    function resetOrderForm() {
+        document.getElementById('orderError').classList.add('hidden');
+        document.getElementById('orderForm').classList.remove('hidden');
+        document.getElementById('orderLoading').classList.add('hidden');
+        document.getElementById('orderResumen').classList.add('hidden');
+        distanciaPorCalles = 0; precioCalculado = 0; puntoB = null;
+        if (marcadorB) { marcadorB.remove(); marcadorB = null; }
+        if (capaRuta) { capaRuta.remove(); capaRuta = null; }
+        document.getElementById('direccionB').value = '';
+    }
+
+    function iniciarMapaPedido() {
+        if (mapaPedido) mapaPedido.remove();
+        mapaPedido = L.map('orderMap', { zoomControl: true, attributionControl: false }).setView([19.4326, -99.1332], 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(mapaPedido);
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                puntoA = { lat: position.coords.latitude, lng: position.coords.longitude };
+                marcadorA = L.marker([puntoA.lat, puntoA.lng], {
+                    icon: L.divIcon({
+                        html: '<div style="background: #6366f1; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">1</div>',
+                        className: '', iconSize: [30, 30], iconAnchor: [15, 15]
+                    })
+                }).addTo(mapaPedido).bindPopup('<b>Punto A</b><br>Tu ubicación');
+                mapaPedido.setView([puntoA.lat, puntoA.lng], 14);
+                document.getElementById('direccionA').value = `${puntoA.lat.toFixed(6)}, ${puntoA.lng.toFixed(6)}`;
+
+                mapaPedido.on('click', async (e) => {
+                    if (marcadorB) marcadorB.remove();
+                    if (capaRuta) capaRuta.remove();
+                    puntoB = { lat: e.latlng.lat, lng: e.latlng.lng };
+                    marcadorB = L.marker([puntoB.lat, puntoB.lng], {
+                        icon: L.divIcon({
+                            html: '<div style="background: #ef4444; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">2</div>',
+                            className: '', iconSize: [30, 30], iconAnchor: [15, 15]
+                        })
+                    }).addTo(mapaPedido).bindPopup('<b>Punto B</b><br>Destino seleccionado');
+                    document.getElementById('direccionB').value = `${puntoB.lat.toFixed(6)}, ${puntoB.lng.toFixed(6)}`;
+                    await calcularRuta();
+                });
+            }, (error) => { alert('No se pudo obtener tu ubicación. Activa el GPS.'); }, { enableHighAccuracy: true });
+        } else { alert('Tu navegador no soporta geolocalización'); }
+    }
+
+    async function calcularRuta() {
+        if (!puntoA || !puntoB) return;
+        document.getElementById('orderResumen').classList.add('hidden');
+        let distanciaKm = 0;
+        try {
+            const url = `${ROUTE_API}?inicio=${puntoA.lng},${puntoA.lat}&fin=${puntoB.lng},${puntoB.lat}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.features && data.features[0] && data.features[0].geometry && data.features[0].geometry.coordinates) {
+                    if (capaRuta) capaRuta.remove();
+                    const coords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                    capaRuta = L.polyline(coords, { color: '#6366f1', weight: 4, opacity: 0.8 }).addTo(mapaPedido);
+                    const bounds = L.latLngBounds([[puntoA.lat, puntoA.lng], [puntoB.lat, puntoB.lng]]);
+                    mapaPedido.fitBounds(bounds, { padding: [50, 50] });
+                }
+                if (data.features && data.features[0] && data.features[0].properties && data.features[0].properties.summary) {
+                    const distanciaMetros = data.features[0].properties.summary.distance;
+                    if (distanciaMetros && distanciaMetros > 0) { distanciaKm = distanciaMetros / 1000; }
+                }
+                if (distanciaKm <= 0 && data.features && data.features[0] && data.features[0].properties && data.features[0].properties.segments) {
+                    let distanciaTotalMetros = 0;
+                    data.features[0].properties.segments.forEach(segmento => { if (segmento.distance) { distanciaTotalMetros += segmento.distance; } });
+                    if (distanciaTotalMetros > 0) { distanciaKm = distanciaTotalMetros / 1000; }
+                }
+            }
+        } catch (error) { console.error('Error al calcular ruta por calles:', error); }
+        if (distanciaKm <= 0) {
+            console.warn('No se pudo obtener la distancia por calles, usando distancia en línea recta');
+            distanciaKm = calcularDistanciaHaversine(puntoA, puntoB);
+        }
+        distanciaPorCalles = distanciaKm;
+        const tiempoEstimado = Math.ceil((distanciaKm / 30) * 60) + 10;
+        precioCalculado = Math.round(distanciaKm * PRECIO_POR_KM);
+        document.getElementById('resumenDistancia').textContent = distanciaKm.toFixed(2);
+        document.getElementById('resumenTiempo').textContent = tiempoEstimado;
+        document.getElementById('resumenPrecio').textContent = precioCalculado;
+        document.getElementById('orderResumen').classList.remove('hidden');
+    }
+
+    function calcularDistanciaHaversine(p1, p2) {
+        const R = 6371;
+        const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+        const dLon = (p2.lng - p1.lng) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    // ============ CORRECCIÓN: Insertar directo con los valores calculados ============
+    async function crearPedido() {
+        if (!puntoA || !puntoB) { alert('Selecciona ambos puntos en el mapa'); return; }
+        if (distanciaPorCalles <= 0) { alert('Espera a que se calcule la distancia'); return; }
+
+        const nombreContacto = document.getElementById('nombreContacto').value.trim();
+        const telefonoContacto = document.getElementById('telefonoContacto').value.trim();
+        if (!nombreContacto || !telefonoContacto) { alert('Completa los datos del contacto'); return; }
+
+        document.getElementById('orderForm').classList.add('hidden');
+        document.getElementById('orderLoading').classList.remove('hidden');
+
+        try {
+            // 1. Insertar punto A
+            const { data: puntoAData, error: errorA } = await supabase.from('ubicaciones').insert({
+                punto_tipo: 'A', latitud: puntoA.lat, longitud: puntoA.lng
+            }).select('id').single();
+            if (errorA) throw errorA;
+
+            // 2. Insertar punto B
+            const { data: puntoBData, error: errorB } = await supabase.from('ubicaciones').insert({
+                punto_tipo: 'B', latitud: puntoB.lat, longitud: puntoB.lng
+            }).select('id').single();
+            if (errorB) throw errorB;
+
+            // 3. Insertar pedido con los valores EXACTOS calculados
+            const tiempoEstimado = Math.ceil((distanciaPorCalles / 30) * 60) + 10;
+            const { data: pedidoData, error: errorPedido } = await supabase.from('pedidos').insert({
+                cliente_id: perfilActual.id,
+                tipo: tipoPedido,
+                punto_a_id: puntoAData.id,
+                punto_b_id: puntoBData.id,
+                nombre_contacto: nombreContacto,
+                telefono_contacto: telefonoContacto,
+                distancia_km: distanciaPorCalles,
+                tiempo_estimado_minutos: Math.ceil((distanciaPorCalles / 30) * 60),
+                tiempo_estimado_con_anticipo: tiempoEstimado,
+                precio_por_km: PRECIO_POR_KM,
+                precio_total: precioCalculado,
+                estado: 'pendiente',
+                activo: true
+            }).select('numero_pedido').single();
+            if (errorPedido) throw errorPedido;
+
+            document.getElementById('orderLoading').classList.add('hidden');
+            document.getElementById('orderSuccess').classList.remove('hidden');
+            document.getElementById('orderNumero').textContent = pedidoData.numero_pedido;
+
+        } catch (error) {
+            document.getElementById('orderLoading').classList.add('hidden');
+            document.getElementById('orderError').classList.remove('hidden');
+            document.getElementById('orderErrorMsg').textContent = error.message || 'Error al crear el pedido';
+        }
+    }
+
+    function verEnMapa(latA, lonA, latB, lonB) {
+        const mapId = 'viewMap_' + Date.now();
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay fade-in';
+        overlay.innerHTML = `<div class="modal slide-up" style="max-width: 90vw; width: 600px;"><div class="p-4"><div class="flex justify-between items-center mb-3"><h4 class="font-bold">Ruta del pedido</h4><button class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button></div><div id="${mapId}" class="map-container"></div></div></div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('button').onclick = () => overlay.remove();
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        setTimeout(() => {
+            const map = L.map(mapId).setView([latA, lonA], 13);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+            L.marker([latA, lonA], { icon: L.divIcon({ html: '<div style="background: #6366f1; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">1</div>', className: '', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
+            L.marker([latB, lonB], { icon: L.divIcon({ html: '<div style="background: #ef4444; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">2</div>', className: '', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map);
+            const bounds = L.latLngBounds([[latA, lonA], [latB, lonB]]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+            fetch(`${ROUTE_API}?inicio=${lonA},${latA}&fin=${lonB},${latB}`).then(res => res.json()).then(data => {
+                if (data.features && data.features[0] && data.features[0].geometry && data.features[0].geometry.coordinates) {
+                    const coords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                    L.polyline(coords, { color: '#6366f1', weight: 4, opacity: 0.8 }).addTo(map);
+                }
+            }).catch(() => {});
+        }, 200);
+    }
+
+    function suscribirCambios() {
+        if (suscripcionPedidos) supabase.removeChannel(suscripcionPedidos);
+        suscripcionPedidos = supabase.channel('pedidos-cliente').on('postgres_changes', {
+            event: '*', schema: 'public', table: 'pedidos', filter: `cliente_id=eq.${perfilActual?.id}`
+        }, () => {
+            if (!document.getElementById('dashboardScreen').classList.contains('hidden')) { cargarPedidos(); }
+        }).subscribe();
+    }
+</script>
+</body>
+</html>
