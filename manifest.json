@@ -1,21 +1,101 @@
 {
-  "name": "PediFlash",
+  "name": "PediFlash - Envíos Rápidos y Seguros",
   "short_name": "PediFlash",
+  "description": "La forma más rápida y segura de enviar paquetes en tu ciudad. Repartidores verificados, seguimiento en tiempo real.",
   "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ff0000",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#FFFFFF",
+  "theme_color": "#FF6B35",
   "orientation": "portrait",
+  "lang": "es-MX",
+  "dir": "ltr",
+  "categories": ["shopping", "travel", "utilities"],
   "icons": [
     {
       "src": "logo.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
       "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "384x384",
       "type": "image/png"
     },
     {
       "src": "logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "screenshot-mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Solicitar Envío",
+      "short_name": "Enviar",
+      "description": "Solicita un envío rápido",
+      "url": "/cliente.html",
+      "icons": [
+        {
+          "src": "logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Panel Repartidor",
+      "short_name": "Repartidor",
+      "description": "Accede a tu panel de repartidor",
+      "url": "/repartidor.html",
+      "icons": [
+        {
+          "src": "logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": []
 }
