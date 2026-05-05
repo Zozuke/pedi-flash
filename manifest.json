@@ -1,7 +1,7 @@
 {
-  "name": "PediFlash - Envíos Rápidos y Seguros",
+  "name": "PediFlash - Envios Rapidos y Seguros",
   "short_name": "PediFlash",
-  "description": "La forma más rápida y segura de enviar paquetes en tu ciudad. Repartidores verificados, seguimiento en tiempo real.",
+  "description": "La forma mas rapida y segura de enviar paquetes en tu ciudad",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
@@ -10,8 +10,6 @@
   "theme_color": "#FF6B35",
   "orientation": "portrait",
   "lang": "es-MX",
-  "dir": "ltr",
-  "categories": ["shopping", "travel", "utilities"],
   "icons": [
     {
       "src": "logo.png",
@@ -56,46 +54,18 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "screenshot-desktop.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "screenshot-mobile.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ],
-  "prefer_related_applications": false,
   "shortcuts": [
     {
-      "name": "Solicitar Envío",
+      "name": "Solicitar Envio",
       "short_name": "Enviar",
-      "description": "Solicita un envío rápido",
       "url": "/cliente.html",
-      "icons": [
-        {
-          "src": "logo.png",
-          "sizes": "96x96"
-        }
-      ]
+      "icons": [{ "src": "logo.png", "sizes": "96x96" }]
     },
     {
       "name": "Panel Repartidor",
       "short_name": "Repartidor",
-      "description": "Accede a tu panel de repartidor",
       "url": "/repartidor.html",
-      "icons": [
-        {
-          "src": "logo.png",
-          "sizes": "96x96"
-        }
-      ]
+      "icons": [{ "src": "logo.png", "sizes": "96x96" }]
     }
-  ],
-  "related_applications": []
+  ]
 }
