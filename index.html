@@ -7,26 +7,12 @@
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#FF6B35">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="PediFlash">
     <meta name="description" content="PediFlash - La forma más rápida y segura de enviar paquetes en tu ciudad. Repartidores verificados, seguimiento en tiempo real.">
-    <link rel="manifest" href="data:application/json,{
-        \"name\": \"PediFlash\",
-        \"short_name\": \"PediFlash\",
-        \"description\": \"Envíos rápidos y seguros\",
-        \"start_url\": \"/\",
-        \"display\": \"standalone\",
-        \"background_color\": \"#FF6B35\",
-        \"theme_color\": \"#FF6B35\",
-        \"icons\": [
-            {
-                \"src\": \"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23FF6B35'/><text x='50' y='68' text-anchor='middle' font-size='55'>🛵</text></svg>\",
-                \"sizes\": \"100x100\",
-                \"type\": \"image/svg+xml\"
-            }
-        ]
-    }">
+    <link rel="manifest" href="manifest.json">
     
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
