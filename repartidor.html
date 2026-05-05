@@ -2,565 +2,1216 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>PEDI-FLASH | Repartidor - Gana con cada envío</title>
-    <!-- Tailwind + Font Awesome + Google Fonts -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Leaflet CSS y JS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PediFlash - Panel Repartidor</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#FF6B35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PediFlash Rep">
+    <link rel="manifest" href="data:application/json,{}">
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Leaflet CSS + JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+    
     <style>
-        * { font-family: 'Inter', sans-serif; }
-        body { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height: 100vh; }
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 2rem; box-shadow: 0 20px 35px -10px rgba(0,0,0,0.2); }
-        .badge-pendiente { background: #fef3c7; color: #d97706; }
-        .badge-en_camino { background: #dbeafe; color: #2563eb; }
-        .badge-entregado { background: #d1fae5; color: #059669; }
-        .badge-cancelado { background: #fee2e2; color: #dc2626; }
-        .badge-jornada-activa { background: #d1fae5; color: #059669; }
-        .badge-jornada-finalizada { background: #e5e7eb; color: #4b5563; }
-        .loading-spinner { border: 3px solid #e5e7eb; border-top: 3px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .map-container { height: 300px; border-radius: 1rem; z-index: 1; }
-        .leaflet-routing-container { display: none !important; }
+        :root {
+            --primary: #FF6B35;
+            --primary-dark: #E55A2B;
+            --secondary: #004E89;
+            --accent: #1A936F;
+            --danger: #DC3545;
+            --warning: #FFC107;
+            --info: #17A2B8;
+            --light: #F8F9FA;
+            --dark: #212529;
+            --gray: #6C757D;
+            --border: #DEE2E6;
+            --radius: 16px;
+            --shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --bottom-nav-height: 70px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #F5F7FA;
+            padding-bottom: calc(var(--bottom-nav-height) + 25px);
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white; padding: 15px 18px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 1000;
+            box-shadow: 0 4px 15px rgba(255,107,53,0.3);
+        }
+        .header .logo { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .header .user-info { display: flex; align-items: center; gap: 10px; }
+        .header .user-avatar {
+            width: 38px; height: 38px; background: rgba(255,255,255,0.2);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 16px; cursor: pointer;
+        }
+        .header .user-name { font-weight: 600; font-size: 13px; }
+        .header .user-role { font-size: 10px; opacity: 0.8; }
+        .header .btn-logout {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+            color: white; padding: 7px 14px; border-radius: 8px; cursor: pointer;
+            font-size: 12px; font-weight: 600; font-family: inherit;
+        }
+
+        /* STATUS BAR */
+        .status-bar {
+            background: white; padding: 10px 18px; display: flex;
+            align-items: center; gap: 10px; font-size: 13px; font-weight: 600;
+            border-bottom: 1px solid var(--border); position: sticky; top: 64px; z-index: 999;
+        }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+        }
+        .status-dot.online { background: #1A936F; box-shadow: 0 0 8px rgba(26,147,111,0.5); }
+        .status-dot.offline { background: #ccc; }
+        .status-dot.suspendido { background: var(--danger); }
+
+        /* CONTENT */
+        .content { padding: 15px; max-width: 700px; margin: 0 auto; }
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* CARDS */
+        .card {
+            background: white; border-radius: var(--radius);
+            box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 18px; border-bottom: 1px solid var(--border);
+            font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px;
+        }
+        .card-body { padding: 18px; }
+        .card-body.no-padding { padding: 0; }
+
+        /* BUTTONS */
+        .btn {
+            padding: 13px 22px; border: none; border-radius: 12px;
+            font-weight: 700; font-size: 14px; cursor: pointer;
+            transition: all 0.2s; font-family: inherit; display: inline-flex;
+            align-items: center; gap: 8px; justify-content: center; text-align: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-sm { padding: 8px 15px; font-size: 12px; border-radius: 8px; }
+        .btn-block { width: 100%; }
+        .btn-success { background: var(--accent); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-warning { background: var(--warning); color: #212529; }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-map { background: #4285F4; color: white; }
+        .btn-waze { background: #33CCFF; color: white; }
+        .btn:disabled { opacity: 0.5; pointer-events: none; }
+
+        /* PEDIDO CARD */
+        .pedido-card {
+            border: 2px solid var(--border); border-radius: var(--radius);
+            padding: 16px; margin-bottom: 12px; transition: all 0.2s;
+            cursor: pointer; background: white; position: relative;
+        }
+        .pedido-card:active { border-color: var(--primary); transform: scale(0.98); }
+        .pedido-card.seleccionado { border-color: var(--primary); background: #FFF5F0; }
+        .pedido-card .pedido-header {
+            display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;
+        }
+        .pedido-card .pedido-num { font-weight: 800; font-size: 17px; color: var(--primary); }
+        .pedido-card .pedido-precio { font-weight: 800; font-size: 22px; color: var(--accent); }
+        .pedido-card .pedido-info { font-size: 13px; color: var(--gray); margin: 4px 0; display: flex; align-items: center; gap: 5px; }
+        .pedido-card .efectivo-badge {
+            background: #FFFDE7; color: #F57F17; padding: 4px 10px;
+            border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block;
+        }
+
+        /* BADGES */
+        .badge-status {
+            display: inline-block; padding: 4px 10px; border-radius: 12px;
+            font-size: 11px; font-weight: 700;
+        }
+        .badge-pendiente { background: #FFF3CD; color: #856404; }
+        .badge-camino { background: #CCE5FF; color: #004085; }
+        .badge-entregado { background: #D4EDDA; color: #155724; }
+        .badge-cancelado { background: #F8D7DA; color: #721C24; }
+
+        /* MAP */
+        .map-container {
+            width: 100%; height: 400px; border-radius: 12px;
+            overflow: hidden; border: 2px solid var(--border); margin-bottom: 12px;
+        }
+        .map-legend {
+            display: flex; gap: 15px; flex-wrap: wrap; font-size: 12px;
+            margin-bottom: 10px; color: var(--gray);
+        }
+        .map-legend span { display: flex; align-items: center; gap: 5px; }
+        .legend-dot {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+        }
+        .legend-dot.pickup { background: #FF6B35; }
+        .legend-dot.dropoff { background: #1A936F; }
+
+        /* PAGO CARD */
+        .pago-card {
+            background: linear-gradient(135deg, #FFF5F0 0%, #FFFFFF 100%);
+            border: 2px dashed var(--primary); border-radius: var(--radius);
+            padding: 20px; text-align: center; margin-bottom: 16px;
+        }
+        .pago-card .tienda-icon { font-size: 55px; display: block; margin-bottom: 5px; }
+        .pago-card h3 { font-size: 18px; margin: 5px 0; color: var(--dark); }
+        .pago-card .monto-grande {
+            font-size: 42px; font-weight: 800; color: var(--danger);
+            display: block; margin: 10px 0;
+        }
+        .pago-card .tarjeta-numero {
+            background: #1a1a2e; color: white; padding: 14px 22px;
+            border-radius: 12px; font-size: 20px; letter-spacing: 3px;
+            font-family: 'Courier New', monospace; display: inline-block;
+            margin: 8px 0; word-break: break-all;
+        }
+        .pago-card .tienda-hint {
+            font-size: 13px; color: var(--gray); margin-top: 8px; line-height: 1.5;
+        }
+        .pago-card .info-extra {
+            background: #FFF; border-radius: 10px; padding: 12px; margin-top: 12px;
+            font-size: 12px; color: var(--dark); text-align: left; line-height: 1.6;
+            border: 1px solid #FFE0CC;
+        }
+
+        /* COMPROBANTE */
+        .comprobante-preview {
+            width: 100%; max-height: 200px; object-fit: contain;
+            border-radius: 10px; border: 2px solid var(--border); margin: 10px 0; cursor: pointer;
+        }
+        .file-input-wrapper { position: relative; width: 100%; }
+        .file-input-wrapper input[type="file"] {
+            padding: 14px; border: 2px dashed var(--border); border-radius: 12px;
+            width: 100%; font-family: inherit; font-size: 14px; cursor: pointer;
+            background: #FAFBFC; transition: all 0.2s;
+        }
+        .file-input-wrapper input[type="file"]:hover { border-color: var(--primary); background: #FFF5F0; }
+
+        /* ALERT */
+        .alert {
+            padding: 14px 16px; border-radius: 12px; margin-bottom: 12px;
+            font-size: 13px; font-weight: 500; display: none; line-height: 1.5;
+        }
+        .alert-error { background: #FFF5F5; color: var(--danger); border: 1px solid #FFC9C9; }
+        .alert-success { background: #F0FFF8; color: var(--accent); border: 1px solid #B7E4CF; }
+        .alert-warning { background: #FFFDE7; color: #856404; border: 1px solid #FFE082; display: block; }
+        .alert-info { background: #F0F7FF; color: var(--secondary); border: 1px solid #CCE5FF; display: block; }
+
+        /* STAT ROW */
+        .stat-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+        }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--gray); }
+        .stat-value { font-weight: 700; color: var(--dark); }
+        .stat-value.green { color: var(--accent); }
+        .stat-value.red { color: var(--danger); }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; border-top: 1px solid var(--border);
+            display: flex; height: var(--bottom-nav-height);
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.05); z-index: 1000;
+        }
+        .bottom-nav .nav-item {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; position: relative;
+            border: none; background: transparent; cursor: pointer;
+            font-size: 10px; color: var(--gray); font-weight: 600;
+            font-family: inherit; transition: all 0.2s;
+        }
+        .bottom-nav .nav-item.active { color: var(--primary); }
+        .bottom-nav .nav-item .nav-icon { font-size: 22px; margin-bottom: 2px; }
+        .bottom-nav .nav-item .badge-pill {
+            position: absolute; top: 6px; right: 50%; transform: translateX(18px);
+            background: var(--danger); color: white; font-size: 9px;
+            padding: 2px 6px; border-radius: 10px; font-weight: 700; min-width: 18px; text-align: center;
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 9999; align-items: flex-end; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-sheet {
+            background: white; border-radius: 20px 20px 0 0; width: 100%; max-width: 550px;
+            max-height: 85vh; overflow-y: auto; padding: 20px; animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-sheet h3 { font-size: 18px; font-weight: 700; margin-bottom: 15px; text-align: center; }
+        .modal-sheet .close-btn {
+            position: absolute; right: 15px; top: 15px; background: #f1f3f5;
+            border: none; width: 32px; height: 32px; border-radius: 50%;
+            font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* SPINNER */
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 3px solid rgba(255,255,255,0.3); border-radius: 50%;
+            border-top-color: white; animation: spin 0.8s linear infinite;
+            margin-right: 8px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state { text-align: center; padding: 35px 20px; color: var(--gray); }
+        .empty-icon { font-size: 50px; display: block; margin-bottom: 10px; }
+
+        .text-center { text-align: center; }
+        .mt-1 { margin-top: 8px; }
+        .mt-2 { margin-top: 12px; }
+        .mt-3 { margin-top: 18px; }
+        .mb-2 { margin-bottom: 12px; }
+        .gap-10 { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* PULSE ANIMATION */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,107,53,0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(255,107,53,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,107,53,0); }
+        }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body>
 
-<div class="max-w-6xl mx-auto">
     <!-- HEADER -->
-    <div class="flex flex-wrap justify-between items-center gap-4 mb-6 text-white">
-        <div class="flex items-center gap-3">
-            <i class="fas fa-motorcycle text-3xl"></i>
-            <h1 class="text-3xl font-bold">PEDI-FLASH Repartidor</h1>
+    <header class="header">
+        <div>
+            <div class="logo">🛵 PediFlash</div>
         </div>
-        <div class="flex items-center gap-4">
-            <span id="userNameDisplay" class="text-sm bg-white/20 px-4 py-2 rounded-full"><i class="fas fa-user mr-2"></i>Cargando...</span>
-            <span id="jornadaStatus" class="text-sm bg-white/20 px-3 py-2 rounded-full"><i class="fas fa-calendar-alt mr-1"></i> Sin jornada</span>
-            <button id="logoutBtnRepartidor" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition"><i class="fas fa-sign-out-alt mr-2"></i>Salir</button>
+        <div class="user-info">
+            <div>
+                <div class="user-name" id="userNameDisplay">Cargando...</div>
+                <div class="user-role" id="userRoleDisplay">Repartidor</div>
+            </div>
+            <div class="user-avatar" id="avatarInicial" onclick="mostrarPerfil()">R</div>
+            <button class="btn-logout" onclick="logout()">🚪</button>
         </div>
+    </header>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+        <div class="status-dot offline" id="statusDot"></div>
+        <span id="statusText">Sin jornada activa</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--gray);" id="statusExtra"></span>
     </div>
 
-    <!-- TABS -->
-    <div class="flex flex-wrap gap-2 mb-6">
-        <button id="tabPedidosDisponibles" class="glass-card px-6 py-3 font-semibold text-gray-700 hover:shadow-lg transition-all flex items-center gap-2 bg-blue-600 text-white shadow-lg"><i class="fas fa-list-alt"></i> Pedidos Disponibles</button>
-        <button id="tabMisPedidos" class="glass-card px-6 py-3 font-semibold text-gray-700 hover:shadow-lg transition-all flex items-center gap-2"><i class="fas fa-tasks"></i> Mis Pedidos</button>
-        <button id="tabJornada" class="glass-card px-6 py-3 font-semibold text-gray-700 hover:shadow-lg transition-all flex items-center gap-2"><i class="fas fa-calendar-check"></i> Mi Jornada</button>
-        <button id="tabPagos" class="glass-card px-6 py-3 font-semibold text-gray-700 hover:shadow-lg transition-all flex items-center gap-2"><i class="fas fa-dollar-sign"></i> Pagos</button>
-    </div>
-
-    <!-- PEDIDOS DISPONIBLES -->
-    <div id="seccionPedidosDisponibles" class="glass-card p-6">
-        <h2 class="text-2xl font-bold mb-4 text-gray-800"><i class="fas fa-map-marker-alt mr-2 text-green-600"></i>Pedidos cercanos disponibles</h2>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-100 rounded-xl">
-                    <tr><th class="p-3">#Pedido</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Distancia</th><th>Precio</th><th>Ganancia</th><th>Acción</th></tr>
-                </thead>
-                <tbody id="disponiblesTable"></tr><td colspan="8" class="text-center p-8"><div class="loading-spinner mx-auto"></div></td></tr></tbody>
-            </table>
+    <!-- CONTENT -->
+    <div class="content">
+        <!-- Alertas -->
+        <div class="alert alert-error" id="alertError"></div>
+        <div class="alert alert-success" id="alertSuccess"></div>
+        <div class="alert alert-warning" id="alertWarning" style="display:none;">
+            ⚠️ <strong>Importante:</strong> Debes depositar tu comisión al finalizar tu jornada. Tienes 24 horas para hacerlo después de cada corte. ¡No te atrases!
         </div>
-    </div>
 
-    <!-- MIS PEDIDOS (asignados) -->
-    <div id="seccionMisPedidos" class="glass-card p-6 hidden">
-        <h2 class="text-2xl font-bold mb-4 text-gray-800"><i class="fas fa-tasks mr-2 text-blue-600"></i>Mis pedidos activos</h2>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-100"><tr><th>#</th><th>Tipo</th><th>Cliente</th><th>Contacto</th><th>Estado</th><th>Precio</th><th>Acciones</th></tr></thead>
-                <tbody id="misPedidosTable"><tr><td colspan="7" class="text-center p-8">Cargando...</td></td></tbody>
-            </table>
-        </div>
-        <div id="mapaPedidoActivo" class="mt-4 hidden">
-            <h3 class="font-bold mb-2">📍 Ruta actual del pedido</h3>
-            <div id="mapaRuta" class="map-container"></div>
-        </div>
-    </div>
-
-    <!-- JORNADA -->
-    <div id="seccionJornada" class="glass-card p-6 hidden">
-        <h2 class="text-2xl font-bold mb-4 text-gray-800"><i class="fas fa-calendar-alt mr-2"></i>Mi jornada laboral</h2>
-        <div class="grid md:grid-cols-2 gap-6">
-            <div class="bg-gray-50 rounded-xl p-5">
-                <div class="text-center">
-                    <div id="jornadaEstadoActual" class="text-xl font-bold mb-3">📌 Sin jornada activa</div>
-                    <button id="btnIniciarJornada" class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold w-full"><i class="fas fa-play"></i> Iniciar Jornada</button>
-                    <button id="btnFinalizarJornada" class="bg-red-600 text-white px-6 py-3 rounded-xl font-bold w-full mt-2 hidden"><i class="fas fa-stop"></i> Finalizar Jornada</button>
-                </div>
-                <div class="mt-4 border-t pt-4">
-                    <p><strong>💰 Ganancias hoy:</strong> $<span id="gananciasHoy">0</span></p>
-                    <p><strong>📦 Pedidos entregados hoy:</strong> <span id="pedidosHoy">0</span></p>
-                    <p><strong>🏦 Comisión a pagar (25%):</strong> $<span id="comisionPagar">0</span></p>
+        <!-- ========== SECCIÓN JORNADA ========== -->
+        <div class="section active" id="sec-jornada">
+            <div class="card">
+                <div class="card-header">⏰ Mi Jornada de Trabajo</div>
+                <div class="card-body text-center">
+                    <div style="font-size:55px;margin:10px 0;" id="jornadaIcon">😴</div>
+                    <h3 id="jornadaTitulo">Sin jornada activa</h3>
+                    <p style="color:var(--gray);font-size:13px;margin:5px 0;" id="jornadaSubtitulo">
+                        Inicia tu jornada para comenzar a recibir pedidos
+                    </p>
+                    
+                    <button class="btn btn-success btn-block mt-3 pulse" id="btnIniciarJornada" onclick="toggleJornada('iniciar')">
+                        ▶ INICIAR JORNADA
+                    </button>
+                    <button class="btn btn-danger btn-block mt-2" id="btnFinalizarJornada" onclick="toggleJornada('finalizar')" style="display:none;">
+                        ⏹ FINALIZAR JORNADA Y GENERAR PAGO
+                    </button>
+                    
+                    <div style="background:#f8f9fa;border-radius:12px;padding:15px;margin-top:15px;text-align:left;">
+                        <div class="stat-row">
+                            <span class="stat-label">📦 Pedidos entregados hoy</span>
+                            <span class="stat-value" id="pedidosHoy">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">💰 Efectivo cobrado (tus ganancias)</span>
+                            <span class="stat-value green" id="gananciasHoy">$0.00</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">🏦 Comisión a pagar a la web</span>
+                            <span class="stat-value red" id="comisionHoy">$0.00</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">⭐ Tu calificación</span>
+                            <span class="stat-value" id="calificacionDisplay">5.0 ⭐</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="bg-gray-50 rounded-xl p-5">
-                <h3 class="font-bold mb-2">📋 Resumen de ganancias últimas jornadas</h3>
-                <div class="overflow-y-auto max-h-48" id="historialJornadas"></div>
+
+            <!-- Pagos urgentes -->
+            <div class="card" id="cardPagosUrgentes" style="display:none;border:2px solid var(--danger);">
+                <div class="card-header" style="color:var(--danger);">🚨 PAGOS PENDIENTES - ¡EVITA SUSPENSIÓN!</div>
+                <div class="card-body" id="pagosUrgentesBody"></div>
+            </div>
+        </div>
+
+        <!-- ========== SECCIÓN PEDIDOS DISPONIBLES ========== -->
+        <div class="section" id="sec-pedidos">
+            <div class="card">
+                <div class="card-header">
+                    📦 Pedidos Disponibles
+                    <span class="badge-status badge-pendiente" id="badgeDisponibles" style="margin-left:auto;">0</span>
+                </div>
+                <div class="card-body no-padding" id="pedidosDisponiblesBody" style="padding:15px;">
+                    <div class="empty-state"><span class="empty-icon">📭</span>No hay pedidos disponibles<br><small>Los pedidos nuevos aparecerán aquí</small></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SECCIÓN MIS PEDIDOS ACTIVOS ========== -->
+        <div class="section" id="sec-mispedidos">
+            <div class="card">
+                <div class="card-header">📋 Mis Entregas Activas</div>
+                <div class="card-body no-padding" id="misPedidosBody" style="padding:15px;">
+                    <div class="empty-state"><span class="empty-icon">📋</span>No tienes pedidos activos</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SECCIÓN MAPA ========== -->
+        <div class="section" id="sec-mapa">
+            <div class="card">
+                <div class="card-header">🗺️ Mapa de Ruta</div>
+                <div class="card-body">
+                    <div class="map-legend">
+                        <span><span class="legend-dot pickup"></span> Punto de recogida (A)</span>
+                        <span><span class="legend-dot dropoff"></span> Punto de entrega (B)</span>
+                    </div>
+                    <div class="map-container" id="mapContainer"></div>
+                    <div id="mapInfo" style="font-size:13px;color:var(--gray);margin-bottom:8px;"></div>
+                    <div class="gap-10" id="mapActions"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SECCIÓN PAGOS ========== -->
+        <div class="section" id="sec-pagos">
+            <!-- Método de pago -->
+            <div class="card">
+                <div class="card-header">💳 Método de Pago de Comisión</div>
+                <div class="card-body">
+                    <div class="pago-card">
+                        <span class="tienda-icon">🏪</span>
+                        <h3>Ve a tu tiendita más cercana y deposita</h3>
+                        <span class="monto-grande" id="montoAPagarPrincipal">$0.00</span>
+                        <p style="font-size:14px;color:var(--dark);font-weight:600;">A la siguiente cuenta/tarjeta:</p>
+                        <div class="tarjeta-numero" id="numeroDepositoDisplay">---- ---- ---- ----</div>
+                        <div class="tienda-hint">
+                            🏦 Deposita en <strong>OXXO, 7-Eleven, Farmacias, Banco Azteca</strong> o cualquier banco<br>
+                            📱 También puedes hacer <strong>transferencia bancaria</strong>
+                        </div>
+                        <div class="info-extra">
+                            <strong>📋 ¿Cómo funciona?</strong><br>
+                            1️⃣ Los clientes te pagan en <strong>efectivo</strong> al entregar<br>
+                            2️⃣ Tú cobras el total del pedido<br>
+                            3️⃣ Al finalizar tu jornada, depositas <strong>solo la comisión</strong> de la web<br>
+                            4️⃣ Subes tu comprobante como prueba de pago<br>
+                            5️⃣ Tienes <strong>24 horas</strong> para pagar después de cada corte<br>
+                            ⚠️ <strong>El pago de hoy no sustituye la cuota del siguiente día</strong>
+                        </div>
+                    </div>
+
+                    <h4 style="margin:15px 0 10px;">📎 Subir Comprobante de Pago</h4>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="fileComprobante" accept="image/*" capture="environment" onchange="previewComprobante(event)">
+                    </div>
+                    <div class="text-center mt-2">
+                        <img id="comprobantePreview" class="comprobante-preview" style="display:none;" onclick="this.style.display='none'">
+                    </div>
+                    <button class="btn btn-primary btn-block mt-2" id="btnSubirComprobante" onclick="subirComprobante()" disabled>
+                        📤 Enviar Comprobante
+                    </button>
+                    <select id="selectPagoParaComprobante" class="file-input-wrapper" style="margin-top:8px;padding:10px;border-radius:10px;font-family:inherit;">
+                        <option value="">Selecciona el pago que estás cubriendo...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Historial de pagos -->
+            <div class="card">
+                <div class="card-header">📜 Historial de Pagos</div>
+                <div class="card-body no-padding" id="historialPagosBody" style="padding:15px;">
+                    <div class="empty-state"><span class="empty-icon">📜</span>Cargando historial...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SECCIÓN HISTORIAL COMPLETO ========== -->
+        <div class="section" id="sec-historial">
+            <div class="card">
+                <div class="card-header">📚 Historial de Entregas</div>
+                <div class="card-body no-padding" id="historialCompletoBody" style="padding:15px;">
+                    <div class="empty-state"><span class="empty-icon">📚</span>Cargando...</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- PAGOS -->
-    <div id="seccionPagos" class="glass-card p-6 hidden">
-        <h2 class="text-2xl font-bold mb-4 text-gray-800"><i class="fas fa-dollar-sign mr-2 text-yellow-600"></i>Historial de pagos</h2>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-100"><tr><th>Jornada</th><th>Monto total</th><th>Comisión</th><th>Monto a pagar</th><th>Estado</th><th>Fecha límite</th><th>Comprobante</th></tr></thead>
-                <tbody id="pagosTable"><tr><td colspan="7" class="text-center p-8">Cargando...</td></tr></tbody>
-            </table>
+    <!-- BOTTOM NAVIGATION -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-section="sec-jornada">
+            <span class="nav-icon">🏠</span> Jornada
+        </button>
+        <button class="nav-item" data-section="sec-pedidos">
+            <span class="nav-icon">📦</span> Pedidos
+            <span class="badge-pill" id="bottomBadgeDisponibles" style="display:none;">0</span>
+        </button>
+        <button class="nav-item" data-section="sec-mispedidos">
+            <span class="nav-icon">🏃</span> Mis Pedidos
+        </button>
+        <button class="nav-item" data-section="sec-mapa">
+            <span class="nav-icon">🗺️</span> Mapa
+        </button>
+        <button class="nav-item" data-section="sec-pagos">
+            <span class="nav-icon">💳</span> Pagos
+        </button>
+    </nav>
+
+    <!-- MODAL PARA CONFIRMAR ENTREGA -->
+    <div class="modal-overlay" id="modalConfirmarEntrega">
+        <div class="modal-sheet">
+            <h3>✅ Confirmar Entrega</h3>
+            <p style="text-align:center;color:var(--gray);margin-bottom:15px;">Pide el nombre de quien recibe para confirmar</p>
+            <input type="text" id="inputNombreConfirmacion" placeholder="Nombre de quien recibe el paquete" 
+                   style="width:100%;padding:14px;border:2px solid var(--border);border-radius:12px;font-size:16px;font-family:inherit;margin-bottom:12px;">
+            <div style="background:#FFFDE7;padding:12px;border-radius:10px;margin-bottom:12px;font-size:13px;">
+                💵 <strong>Recuerda cobrar el efectivo:</strong> <span id="modalEfectivoCobrar" style="font-weight:800;color:var(--accent);">$0.00</span>
+            </div>
+            <div class="gap-10">
+                <button class="btn btn-success btn-block" onclick="confirmarEntrega()">✅ Confirmar Entrega</button>
+                <button class="btn btn-outline btn-block" onclick="closeModal('modalConfirmarEntrega')">Cancelar</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal para confirmar entrega -->
-<div id="modalConfirmarEntrega" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-md">
-        <h3 class="text-xl font-bold mb-4">✅ Confirmar entrega</h3>
-        <p class="mb-2">Ingresa el nombre del destinatario para confirmar:</p>
-        <input type="text" id="confirmarNombre" placeholder="Nombre completo" class="w-full p-3 border rounded-xl mb-4">
-        <input type="hidden" id="confirmarPedidoId">
-        <div class="flex gap-2">
-            <button id="btnConfirmarEntregaModal" class="bg-green-600 text-white px-4 py-2 rounded flex-1">Confirmar</button>
-            <button id="btnCancelarModal" class="bg-gray-300 px-4 py-2 rounded flex-1">Cancelar</button>
+    <!-- MODAL PERFIL -->
+    <div class="modal-overlay" id="modalPerfil">
+        <div class="modal-sheet">
+            <h3>👤 Mi Perfil</h3>
+            <div style="text-align:center;margin-bottom:15px;">
+                <div style="font-size:60px;">🛵</div>
+                <h4 id="perfilNombre"></h4>
+                <p style="color:var(--gray);" id="perfilTelefono"></p>
+                <p style="color:var(--gray);" id="perfilEmail"></p>
+                <span class="badge-status badge-entregado" id="perfilCalificacion"></span>
+            </div>
+            <button class="btn btn-outline btn-block" onclick="closeModal('modalPerfil')">Cerrar</button>
         </div>
     </div>
-</div>
 
-<script>
-    // CONFIGURACIÓN SUPABASE
-    // CONFIGURACIÓN SUPABASE
-const SUPABASE_URL = "https://kjbesbtvgmtuffgmzaaw.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_xbe-EzT66Ww36li0dM9iVw_5zHWyBTZ";
-let supabase = null;
-let currentUser = null;
-let currentProfile = null;
-let jornadaActiva = null;
-let mapRuta = null;
-let routingControl = null;
+    <script>
+        // =============================================
+        // CONFIGURACIÓN SUPABASE
+        // =============================================
+        const SUPABASE_URL = 'https://kjbesbtvgmtuffgmzaaw.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_xbe-EzT66Ww36li0dM9iVw_5zHWyBTZ';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Inicializar
-async function init() {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // ✅ FORZAR VERIFICACIÓN DE SESIÓN CON REINTENTO
-    let session = null;
-    let intentos = 0;
-    
-    while (!session && intentos < 5) {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) {
-            console.error("Error obteniendo sesión:", error);
-        }
-        session = data.session;
-        if (!session && intentos < 4) {
-            console.log(`Intento ${intentos + 1}: No hay sesión, esperando 500ms...`);
-            await new Promise(r => setTimeout(r, 500));
-        }
-        intentos++;
-    }
-    
-    if (!session) {
-        alert("No hay sesión activa. Inicia sesión nuevamente.");
-        window.location.href = "/login.html";
-        return false;
-    }
-    
-    console.log("✅ Sesión encontrada:", session.user.id);
-    currentUser = session.user;
-    
-    const { data: perfil, error: perfilErr } = await supabase
-        .from('perfiles')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .single();
-    
-    if (perfilErr || perfil?.rol !== 'repartidor') {
-        alert("Acceso denegado. Esta sección es solo para repartidores.");
-        window.location.href = "/login.html";
-        return false;
-    }
-    
-    currentProfile = perfil;
-    document.getElementById('userNameDisplay').innerHTML = `<i class="fas fa-motorcycle mr-2"></i>${perfil.nombre}`;
-    
-    await cargarJornadaActiva();
-    await cargarPedidosDisponibles();
-    await cargarMisPedidos();
-    await cargarPagos();
-    await cargarHistorialJornadas();
-    
-    return true;
-}
+        // =============================================
+        // VARIABLES GLOBALES
+        // =============================================
+        let currentUser = null;
+        let currentProfile = null;
+        let jornadaActiva = null;
+        let mapaLeaflet = null;
+        let marcadoresMapa = [];
+        let pedidoActualMapa = null;
+        let pedidoSeleccionadoParaEntrega = null;
 
-// ✅ CORREGIDO: usar maybeSingle() en lugar de single()
-async function cargarJornadaActiva() {
-    const { data, error } = await supabase
-        .from('jornadas_repartidor')
-        .select('*')
-        .eq('repartidor_id', currentProfile.id)
-        .eq('estado', 'activa')
-        .maybeSingle();  // ✅ CAMBIADO: .single() -> .maybeSingle()
-    
-    if (data) {
-        jornadaActiva = data;
-        document.getElementById('jornadaEstadoActual').innerHTML = '🟢 Jornada activa';
-        document.getElementById('btnIniciarJornada').classList.add('hidden');
-        document.getElementById('btnFinalizarJornada').classList.remove('hidden');
-        document.getElementById('jornadaStatus').innerHTML = `<i class="fas fa-play-circle mr-1"></i> Jornada activa`;
-        await actualizarResumenJornada();
-    } else {
-        jornadaActiva = null;
-        document.getElementById('jornadaEstadoActual').innerHTML = '🔴 Sin jornada activa';
-        document.getElementById('btnIniciarJornada').classList.remove('hidden');
-        document.getElementById('btnFinalizarJornada').classList.add('hidden');
-        document.getElementById('jornadaStatus').innerHTML = `<i class="fas fa-stop-circle mr-1"></i> Sin jornada`;
-    }
-}
+        // =============================================
+        // INICIALIZACIÓN
+        // =============================================
+        document.addEventListener('DOMContentLoaded', async function() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session?.user) { window.location.href = 'login.html'; return; }
+            currentUser = session.user;
 
-async function actualizarResumenJornada() {
-    if (!jornadaActiva) return;
-    const { data: pedidos } = await supabase
-        .from('pedidos')
-        .select('precio_total, comision_web')
-        .eq('repartidor_id', currentProfile.id)
-        .eq('estado', 'entregado')
-        .gte('fecha_entrega', jornadaActiva.fecha_inicio);
-    
-    let ganancias = 0;
-    let comision = 0;
-    pedidos?.forEach(p => {
-        ganancias += (p.precio_total - (p.comision_web || 0));
-        comision += (p.comision_web || 0);
-    });
-    
-    document.getElementById('gananciasHoy').innerText = ganancias.toFixed(2);
-    document.getElementById('pedidosHoy').innerText = pedidos?.length || 0;
-    document.getElementById('comisionPagar').innerText = comision.toFixed(2);
-    
-    if (jornadaActiva) {
-        await supabase
-            .from('jornadas_repartidor')
-            .update({ total_ganancias: ganancias, comision_pagar: comision })
-            .eq('id', jornadaActiva.id);
-    }
-}
+            const { data: profile, error } = await supabaseClient
+                .from('perfiles').select('*').eq('user_id', currentUser.id).single();
 
-async function iniciarJornada() {
-    const { data, error } = await supabase
-        .from('jornadas_repartidor')
-        .insert({ repartidor_id: currentProfile.id, estado: 'activa' })
-        .select()
-        .single();
-    
-    if (error) {
-        alert("Error al iniciar jornada: " + error.message);
-        return;
-    }
-    jornadaActiva = data;
-    await cargarJornadaActiva();
-    alert("✅ Jornada iniciada exitosamente");
-}
-
-async function finalizarJornada() {
-    if (!jornadaActiva) return;
-    const { error } = await supabase
-        .from('jornadas_repartidor')
-        .update({ estado: 'finalizada', fecha_fin: new Date().toISOString() })
-        .eq('id', jornadaActiva.id);
-    
-    if (error) {
-        alert("Error al finalizar jornada");
-        return;
-    }
-    await generarPagoDiario();
-    jornadaActiva = null;
-    await cargarJornadaActiva();
-    alert("🏁 Jornada finalizada. Se ha generado el pago correspondiente.");
-    cargarHistorialJornadas();
-    cargarPagos();
-}
-
-async function generarPagoDiario() {
-    const { data, error } = await supabase.rpc('generar_pago_diario');
-    if (error) console.error("Error generando pago:", error);
-    return data;
-}
-
-async function cargarPedidosDisponibles() {
-    const { data: pedidos, error } = await supabase
-        .from('pedidos')
-        .select('*, cliente:cliente_id(nombre, telefono)')
-        .eq('estado', 'pendiente')
-        .eq('activo', true)
-        .order('fecha_creacion', { ascending: true });
-    
-    if (error) return;
-    
-    const tbody = document.getElementById('disponiblesTable');
-    if (!pedidos || pedidos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center p-8 text-gray-500">📭 No hay pedidos disponibles ahora</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = pedidos.map(p => {
-        const ganancia = p.precio_total * 0.75;
-        return `<tr class="border-b">
-            <td class="p-3 font-mono">#${p.numero_pedido}</td>
-            <td class="p-3">${p.tipo === 'envio' ? '📦 Envío' : '🏠 Recepción'}</td>
-            <td class="p-3 truncate max-w-[150px]">${p.nombre_contacto || '-'}</td>
-            <td class="p-3 truncate max-w-[150px]">${p.telefono_contacto}</td>
-            <td class="p-3">${p.distancia_km ? p.distancia_km + ' km' : '-'}</td>
-            <td class="p-3 font-bold">$${p.precio_total?.toFixed(2)}</td>
-            <td class="p-3 text-green-600 font-bold">$${ganancia.toFixed(2)}</td>
-            <td class="p-3"><button class="tomarPedidoBtn bg-blue-600 text-white px-3 py-1 rounded-lg text-sm" data-id="${p.id}"><i class="fas fa-hand-paper"></i> Tomar</button></td>
-         </tr>`;
-    }).join('');
-    
-    document.querySelectorAll('.tomarPedidoBtn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const id = btn.dataset.id;
-            if (!jornadaActiva) {
-                alert("⚠️ Debes iniciar tu jornada primero");
+            if (error || !profile) {
+                alert('Error al cargar perfil');
+                await supabaseClient.auth.signOut();
+                window.location.href = 'login.html';
                 return;
             }
-            const { data, error } = await supabase.rpc('tomar_pedido', { p_pedido_id: id });
-            if (error) {
-                alert("Error: " + error.message);
-            } else if (data?.success) {
-                alert("✅ Pedido tomado exitosamente");
-                cargarPedidosDisponibles();
-                cargarMisPedidos();
-            } else {
-                alert(data?.error || "No se pudo tomar el pedido");
+
+            if (profile.rol !== 'repartidor') {
+                alert('Acceso solo para repartidores');
+                await supabaseClient.auth.signOut();
+                window.location.href = 'login.html';
+                return;
             }
-        });
-    });
-}
 
-async function cargarMisPedidos() {
-    const { data: pedidos, error } = await supabase
-        .from('pedidos')
-        .select('*, cliente:cliente_id(nombre, telefono)')
-        .eq('repartidor_id', currentProfile.id)
-        .in('estado', ['pendiente', 'en_camino'])
-        .order('fecha_tomado', { ascending: false });
-    
-    if (error) return;
-    
-    const tbody = document.getElementById('misPedidosTable');
-    if (!pedidos || pedidos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center p-8 text-gray-500">📋 No tienes pedidos asignados</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = pedidos.map(p => `
-        <tr class="border-b">
-            <td class="p-3 font-mono">#${p.numero_pedido}</td>
-            <td class="p-3">${p.tipo === 'envio' ? '📦 Envío' : '🏠 Recepción'}</td>
-            <td class="p-3">${p.cliente?.nombre || '-'}</td>
-            <td class="p-3">${p.nombre_contacto}<br><small class="text-xs">${p.telefono_contacto}</small></td>
-            <td class="p-3"><span class="px-2 py-1 rounded-full text-xs ${p.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}">${p.estado === 'pendiente' ? 'Pendiente' : 'En camino'}</span></td>
-            <td class="p-3 font-bold">$${p.precio_total?.toFixed(2)}</td>
-            <td class="p-3">
-                ${p.estado === 'en_camino' ? 
-                    `<button class="confirmarEntregaBtn bg-green-600 text-white px-3 py-1 rounded-lg text-sm" data-id="${p.id}" data-nombre="${p.nombre_contacto}"><i class="fas fa-check-circle"></i> Confirmar entrega</button>` :
-                    `<button class="iniciarEntregaBtn bg-blue-600 text-white px-3 py-1 rounded-lg text-sm" data-id="${p.id}"><i class="fas fa-play"></i> Iniciar entrega</button>`
-                }
-            </td>
-         </tr>
-    `).join('');
-    
-    document.querySelectorAll('.iniciarEntregaBtn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const id = btn.dataset.id;
-            const { data, error } = await supabase.rpc('iniciar_entrega', { p_pedido_id: id });
-            if (error) alert("Error: " + error.message);
-            else if (data?.success) {
-                alert("🚚 Entrega iniciada");
-                cargarMisPedidos();
-                mostrarRutaPedido(id);
+            currentProfile = profile;
+            document.getElementById('avatarInicial').textContent = profile.nombre.charAt(0).toUpperCase();
+            document.getElementById('userNameDisplay').textContent = profile.nombre.split(' ')[0];
+            document.getElementById('calificacionDisplay').textContent = parseFloat(profile.calificacion || 5).toFixed(1) + ' ⭐';
+
+            if (profile.suspendido) {
+                document.getElementById('alertError').textContent = '🚫 ESTÁS SUSPENDIDO: ' + (profile.motivo_suspension || 'Falta de pago. Contacta al administrador.');
+                document.getElementById('alertError').style.display = 'block';
+                document.getElementById('statusDot').className = 'status-dot suspendido';
+                document.getElementById('statusText').textContent = 'Suspendido';
             }
+            if (!profile.activo && !profile.suspendido) {
+                document.getElementById('alertError').textContent = '🔒 Tu cuenta está desactivada.';
+                document.getElementById('alertError').style.display = 'block';
+            }
+
+            setupNavigation();
+            await cargarTodo();
+            
+            // Refrescar cada 20 segundos
+            setInterval(cargarTodo, 20000);
+
+            // Suscripción en tiempo real
+            supabaseClient
+                .channel('repartidor-realtime')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos' },
+                    () => { cargarPedidosDisponibles(); vibrar(); }
+                )
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos' },
+                    () => { cargarPedidosDisponibles(); cargarMisPedidos(); }
+                )
+                .subscribe();
+
+            console.log('🛵 Panel Repartidor listo - PWA');
         });
-    });
-    
-    document.querySelectorAll('.confirmarEntregaBtn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = btn.dataset.id;
-            const nombreEsperado = btn.dataset.nombre;
-            document.getElementById('confirmarPedidoId').value = id;
-            document.getElementById('confirmarNombre').value = '';
-            document.getElementById('confirmarNombre').placeholder = `Nombre: ${nombreEsperado}`;
-            document.getElementById('modalConfirmarEntrega').classList.remove('hidden');
-        });
-    });
-}
 
-// Confirmar entrega modal
-document.getElementById('btnConfirmarEntregaModal')?.addEventListener('click', async () => {
-    const pedidoId = document.getElementById('confirmarPedidoId').value;
-    const nombreConfirmado = document.getElementById('confirmarNombre').value.trim();
-    if (!nombreConfirmado) {
-        alert("Ingresa el nombre del destinatario");
-        return;
-    }
-    const { data, error } = await supabase.rpc('confirmar_entrega', { 
-        p_pedido_id: pedidoId, 
-        p_nombre_confirmado: nombreConfirmado 
-    });
-    
-    if (error) alert("Error: " + error.message);
-    else if (data?.success) {
-        alert(`✅ Entrega confirmada! Ganancia: $${data.ganancia}`);
-        document.getElementById('modalConfirmarEntrega').classList.add('hidden');
-        cargarMisPedidos();
-        cargarPedidosDisponibles();
-        actualizarResumenJornada();
-        cargarHistorialJornadas();
-    } else {
-        alert(data?.error || "Error al confirmar entrega");
-    }
-});
+        function vibrar() {
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }
 
-document.getElementById('btnCancelarModal')?.addEventListener('click', () => {
-    document.getElementById('modalConfirmarEntrega').classList.add('hidden');
-});
+        async function cargarTodo() {
+            await Promise.all([
+                cargarJornada(),
+                cargarPedidosDisponibles(),
+                cargarMisPedidos(),
+                cargarPagos(),
+                cargarHistorialCompleto()
+            ]);
+            actualizarStatusBar();
+        }
 
-async function mostrarRutaPedido(pedidoId) {
-    const { data: pedido, error } = await supabase
-        .from('pedidos')
-        .select('punto_a_id, punto_b_id')
-        .eq('id', pedidoId)
-        .single();
-    
-    if (error || !pedido) return;
-    
-    const { data: puntoA } = await supabase.from('ubicaciones').select('latitud, longitud').eq('id', pedido.punto_a_id).maybeSingle();
-    const { data: puntoB } = await supabase.from('ubicaciones').select('latitud, longitud').eq('id', pedido.punto_b_id).maybeSingle();
-    
-    if (puntoA && puntoB) {
-        document.getElementById('mapaPedidoActivo').classList.remove('hidden');
-        if (mapRuta) mapRuta.remove();
-        mapRuta = L.map('mapaRuta').setView([puntoA.latitud, puntoA.longitud], 12);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapRuta);
-        L.marker([puntoA.latitud, puntoA.longitud]).bindPopup('📍 Origen').addTo(mapRuta);
-        L.marker([puntoB.latitud, puntoB.longitud]).bindPopup('🎯 Destino').addTo(mapRuta);
-        
-        if (routingControl) mapRuta.removeControl(routingControl);
-        routingControl = L.Routing.control({
-            waypoints: [L.latLng(puntoA.latitud, puntoA.longitud), L.latLng(puntoB.latitud, puntoB.longitud)],
-            routeWhileDragging: false,
-            show: false,
-            lineOptions: { styles: [{ color: '#3b82f6', weight: 5 }] }
-        }).addTo(mapRuta);
-    }
-}
-
-// ✅ CORREGIDO: quitar referencia a clase CSS inexistente
-async function cargarHistorialJornadas() {
-    const { data: jornadas, error } = await supabase
-        .from('jornadas_repartidor')
-        .select('*')
-        .eq('repartidor_id', currentProfile.id)
-        .order('fecha_inicio', { ascending: false })
-        .limit(10);
-    
-    if (error) return;
-    const container = document.getElementById('historialJornadas');
-    if (!jornadas || jornadas.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-sm">No hay jornadas previas</p>';
-        return;
-    }
-    container.innerHTML = jornadas.map(j => `
-        <div class="border-b py-2 text-sm">
-            <div class="flex justify-between">
-                <span>📅 ${new Date(j.fecha_inicio).toLocaleDateString()}</span>
-                <span class="px-2 py-0.5 rounded-full text-xs ${j.estado === 'activa' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">${j.estado}</span>
-            </div>
-            <div class="flex justify-between mt-1">
-                <span>💰 $${(j.total_ganancias || 0).toFixed(2)}</span>
-                <span>🏦 Comisión: $${(j.comision_pagar || 0).toFixed(2)}</span>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function cargarPagos() {
-    const { data: pagos, error } = await supabase
-        .from('pagos_repartidor')
-        .select('*, jornada:jornada_id(fecha_inicio)')
-        .eq('repartidor_id', currentProfile.id)
-        .order('created_at', { ascending: false });
-    
-    if (error) return;
-    const tbody = document.getElementById('pagosTable');
-    if (!pagos || pagos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center p-8">No hay pagos registrados</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = pagos.map(p => `
-        <tr class="border-b">
-            <td class="p-3">${p.jornada ? new Date(p.jornada.fecha_inicio).toLocaleDateString() : '-'}</td>
-            <td class="p-3">$${(p.monto_total || 0).toFixed(2)}</td>
-            <td class="p-3">$${(p.comision_web || 0).toFixed(2)}</td>
-            <td class="p-3 font-bold">$${(p.monto_pagar || 0).toFixed(2)}</td>
-            <td class="p-3"><span class="px-2 py-1 rounded-full text-xs ${p.estado === 'pagado' ? 'bg-green-100 text-green-700' : p.estado === 'vencido' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">${p.estado}</span></td>
-            <td class="p-3">${p.fecha_limite_pago ? new Date(p.fecha_limite_pago).toLocaleDateString() : '-'}</td>
-            <td class="p-3">${p.comprobante_url ? '<a href="#" class="text-blue-600">Ver</a>' : '-'}</td>
-         </tr>
-    `).join('');
-}
-
-function setupTabs() {
-    const tabs = [
-        { id: 'tabPedidosDisponibles', seccion: 'seccionPedidosDisponibles', action: () => cargarPedidosDisponibles() },
-        { id: 'tabMisPedidos', seccion: 'seccionMisPedidos', action: () => { cargarMisPedidos(); if(mapRuta) mapRuta.remove(); } },
-        { id: 'tabJornada', seccion: 'seccionJornada', action: () => { cargarJornadaActiva(); cargarHistorialJornadas(); } },
-        { id: 'tabPagos', seccion: 'seccionPagos', action: () => cargarPagos() }
-    ];
-    
-    tabs.forEach(tab => {
-        const btn = document.getElementById(tab.id);
-        if (btn) {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('[id^="seccion"]').forEach(s => s.classList.add('hidden'));
-                document.getElementById(tab.seccion).classList.remove('hidden');
-                tabs.forEach(t => {
-                    const tBtn = document.getElementById(t.id);
-                    if (tBtn) {
-                        tBtn.classList.remove('bg-blue-600', 'text-white', 'shadow-lg');
-                        tBtn.classList.add('bg-gray-200', 'text-gray-700');
+        // =============================================
+        // NAVEGACIÓN
+        // =============================================
+        function setupNavigation() {
+            document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.bottom-nav .nav-item').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    const sectionId = this.getAttribute('data-section');
+                    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                    document.getElementById(sectionId).classList.add('active');
+                    
+                    if (sectionId === 'sec-mapa' && pedidoActualMapa) {
+                        setTimeout(() => inicializarMapa(pedidoActualMapa), 300);
+                    }
+                    if (sectionId === 'sec-pagos') {
+                        document.getElementById('alertWarning').style.display = 'block';
+                        cargarPagos();
+                    } else {
+                        document.getElementById('alertWarning').style.display = 'none';
                     }
                 });
-                btn.classList.remove('bg-gray-200', 'text-gray-700');
-                btn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
-                if (tab.action) tab.action();
             });
         }
-    });
-}
 
-// Eventos de jornada
-document.getElementById('btnIniciarJornada')?.addEventListener('click', iniciarJornada);
-document.getElementById('btnFinalizarJornada')?.addEventListener('click', finalizarJornada);
-document.getElementById('logoutBtnRepartidor')?.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/login.html";
-});
+        function showAlert(type, message) {
+            const el = document.getElementById(type === 'error' ? 'alertError' : 'alertSuccess');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 4000);
+        }
 
-// Inicio
-(async () => {
-    const ok = await init();
-    if (ok) {
-        setupTabs();
-    }
-})();
-</script>
+        function actualizarStatusBar() {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const extra = document.getElementById('statusExtra');
+            
+            if (currentProfile?.suspendido) {
+                dot.className = 'status-dot suspendido';
+                text.textContent = 'Suspendido';
+                extra.textContent = '';
+            } else if (jornadaActiva) {
+                dot.className = 'status-dot online';
+                text.textContent = 'En jornada - Recibiendo pedidos';
+                extra.textContent = '🟢 Activo';
+            } else {
+                dot.className = 'status-dot offline';
+                text.textContent = 'Sin jornada activa';
+                extra.textContent = '⚪ Inactivo';
+            }
+        }
+
+        // =============================================
+        // JORNADA
+        // =============================================
+        async function cargarJornada() {
+            const { data } = await supabaseClient
+                .from('jornadas_repartidor')
+                .select('*')
+                .eq('repartidor_id', currentProfile.id)
+                .eq('estado', 'activa')
+                .order('fecha_inicio', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (data) {
+                jornadaActiva = data;
+                document.getElementById('jornadaIcon').textContent = '🟢';
+                document.getElementById('jornadaTitulo').textContent = '¡Estás en jornada!';
+                document.getElementById('jornadaSubtitulo').textContent = 'Recibiendo pedidos. ¡A trabajar! 🚀';
+                document.getElementById('btnIniciarJornada').style.display = 'none';
+                document.getElementById('btnFinalizarJornada').style.display = 'block';
+                document.getElementById('gananciasHoy').textContent = '$' + parseFloat(data.total_ganancias || 0).toFixed(2);
+                document.getElementById('comisionHoy').textContent = '$' + parseFloat(data.comision_pagar || 0).toFixed(2);
+
+                const hoy = new Date().toISOString().split('T')[0];
+                const { count } = await supabaseClient
+                    .from('pedidos')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('repartidor_id', currentProfile.id)
+                    .eq('estado', 'entregado')
+                    .gte('fecha_entrega', hoy);
+                document.getElementById('pedidosHoy').textContent = count || 0;
+            } else {
+                jornadaActiva = null;
+                document.getElementById('jornadaIcon').textContent = '😴';
+                document.getElementById('jornadaTitulo').textContent = 'Sin jornada activa';
+                document.getElementById('jornadaSubtitulo').textContent = 'Inicia tu jornada para comenzar a recibir pedidos';
+                document.getElementById('btnIniciarJornada').style.display = 'block';
+                document.getElementById('btnFinalizarJornada').style.display = 'none';
+                document.getElementById('gananciasHoy').textContent = '$0.00';
+                document.getElementById('comisionHoy').textContent = '$0.00';
+                document.getElementById('pedidosHoy').textContent = '0';
+            }
+        }
+
+        async function toggleJornada(accion) {
+            if (accion === 'iniciar') {
+                if (currentProfile.suspendido || !currentProfile.activo) {
+                    showAlert('error', 'No puedes iniciar jornada. Contacta al administrador.');
+                    return;
+                }
+                const { error } = await supabaseClient
+                    .from('jornadas_repartidor')
+                    .insert({ repartidor_id: currentProfile.id, estado: 'activa' });
+                if (error) showAlert('error', 'Error: ' + error.message);
+                else {
+                    showAlert('success', '✅ ¡Jornada iniciada! A trabajar.');
+                    await cargarJornada();
+                    actualizarStatusBar();
+                }
+            } else {
+                if (!confirm('¿Finalizar tu jornada de trabajo?\n\nSe generará tu pago de comisión. Recuerda depositarlo en las próximas 24 horas.')) return;
+                
+                const { data, error } = await supabaseClient.rpc('generar_pago_diario');
+                if (error) {
+                    showAlert('error', 'Error al generar pago: ' + error.message);
+                } else {
+                    await supabaseClient
+                        .from('jornadas_repartidor')
+                        .update({ estado: 'finalizada', fecha_fin: new Date().toISOString() })
+                        .eq('id', jornadaActiva.id);
+                    
+                    showAlert('success', '✅ Jornada finalizada. Ve a la sección de PAGOS para depositar tu comisión.');
+                    await cargarJornada();
+                    await cargarPagos();
+                    actualizarStatusBar();
+                }
+            }
+        }
+
+        // =============================================
+        // PEDIDOS DISPONIBLES
+        // =============================================
+        async function cargarPedidosDisponibles() {
+            const { data } = await supabaseClient
+                .from('pedidos')
+                .select('*, punto_a:punto_a_id(*), punto_b:punto_b_id(*)')
+                .eq('estado', 'pendiente')
+                .eq('activo', true)
+                .is('repartidor_id', null)
+                .order('fecha_creacion', { ascending: false });
+
+            const pedidos = data || [];
+            document.getElementById('badgeDisponibles').textContent = pedidos.length;
+            const badge = document.getElementById('bottomBadgeDisponibles');
+            badge.textContent = pedidos.length;
+            badge.style.display = pedidos.length > 0 ? 'block' : 'none';
+
+            const body = document.getElementById('pedidosDisponiblesBody');
+            if (pedidos.length === 0) {
+                body.innerHTML = '<div class="empty-state"><span class="empty-icon">📭</span>No hay pedidos disponibles</div>';
+                return;
+            }
+
+            body.innerHTML = pedidos.map(p => `
+                <div class="pedido-card" onclick="mostrarMapaPedido('${p.id}')">
+                    <div class="pedido-header">
+                        <span class="pedido-num">#${p.numero_pedido}</span>
+                        <span class="badge-status badge-pendiente">⏳ Pendiente</span>
+                    </div>
+                    <div class="pedido-info">📍 ${p.distancia_km} km | ⏱ ~${p.tiempo_estimado_con_anticipo} min</div>
+                    <div class="pedido-info">👤 Contacto: <strong>${p.nombre_contacto}</strong></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+                        <div>
+                            <span class="pedido-precio">$${parseFloat(p.precio_total || 0).toFixed(2)}</span>
+                            <br><span style="font-size:11px;color:var(--accent);">🏦 Comisión web: $${(parseFloat(p.precio_total || 0) * 0.25).toFixed(2)}</span>
+                        </div>
+                        <span class="efectivo-badge">💵 Cobrar: $${parseFloat(p.precio_total || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="gap-10 mt-2">
+                        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();tomarPedido('${p.id}')">✋ Tomar</button>
+                        <button class="btn btn-map btn-sm" onclick="event.stopPropagation();mostrarMapaPedido('${p.id}')">🗺️ Mapa</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function tomarPedido(pedidoId) {
+            if (!jornadaActiva) { showAlert('error', 'Debes iniciar tu jornada primero'); return; }
+            if (currentProfile.suspendido || !currentProfile.activo) { showAlert('error', 'No puedes tomar pedidos.'); return; }
+            if (!confirm('¿Confirmas que tomarás este pedido?\n\nRecuerda cobrar el efectivo al entregar.')) return;
+
+            const { data, error } = await supabaseClient.rpc('tomar_pedido', { p_pedido_id: pedidoId });
+            if (error || (data?.error)) {
+                showAlert('error', data?.error || error?.message || 'Error al tomar pedido');
+            } else {
+                showAlert('success', '✅ ¡Pedido tomado! Ve a "Mis Pedidos" para gestionarlo.');
+                pedidoActualMapa = data;
+                vibrar();
+                await cargarTodo();
+            }
+        }
+
+        // =============================================
+        // MIS PEDIDOS
+        // =============================================
+        async function cargarMisPedidos() {
+            const { data } = await supabaseClient
+                .from('pedidos')
+                .select('*, punto_a:punto_a_id(*), punto_b:punto_b_id(*)')
+                .eq('repartidor_id', currentProfile.id)
+                .in('estado', ['en_camino'])
+                .eq('activo', true)
+                .order('fecha_tomado', { ascending: false });
+
+            const pedidos = data || [];
+            const body = document.getElementById('misPedidosBody');
+            
+            if (pedidos.length === 0) {
+                body.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span>No tienes pedidos activos</div>';
+                return;
+            }
+
+            body.innerHTML = pedidos.map(p => `
+                <div class="pedido-card seleccionado">
+                    <div class="pedido-header">
+                        <span class="pedido-num">#${p.numero_pedido}</span>
+                        <span class="badge-status badge-camino">🏃 En camino</span>
+                    </div>
+                    <div class="pedido-info">📍 ${p.distancia_km} km | ⏱ ~${p.tiempo_estimado_con_anticipo} min</div>
+                    <div class="pedido-info">👤 Entregar a: <strong>${p.nombre_contacto}</strong> | 📱 ${p.telefono_contacto}</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+                        <span class="pedido-precio">$${parseFloat(p.precio_total || 0).toFixed(2)}</span>
+                        <span class="efectivo-badge" style="font-size:13px;">💵 Cobrar: $${parseFloat(p.precio_total || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="gap-10 mt-2">
+                        <button class="btn btn-map btn-sm" onclick="mostrarMapaPedido('${p.id}')">🗺️ Mapa</button>
+                        <button class="btn btn-waze btn-sm" onclick="abrirGoogleMaps('${p.punto_a?.latitud}', '${p.punto_a?.longitud}')">📍 Ir a Punto A</button>
+                        <button class="btn btn-success btn-sm" onclick="abrirModalConfirmar('${p.id}', '${p.precio_total}', '${p.nombre_contacto}')">✅ Entregar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // =============================================
+        // CONFIRMAR ENTREGA
+        // =============================================
+        function abrirModalConfirmar(pedidoId, precioTotal, nombreContacto) {
+            pedidoSeleccionadoParaEntrega = { id: pedidoId, nombre_esperado: nombreContacto };
+            document.getElementById('modalEfectivoCobrar').textContent = '$' + parseFloat(precioTotal || 0).toFixed(2);
+            document.getElementById('inputNombreConfirmacion').value = '';
+            document.getElementById('modalConfirmarEntrega').classList.add('active');
+        }
+
+        async function confirmarEntrega() {
+            const nombreConfirmado = document.getElementById('inputNombreConfirmacion').value.trim();
+            if (!nombreConfirmado) { alert('Ingresa el nombre de quien recibe'); return; }
+            if (!pedidoSeleccionadoParaEntrega) return;
+
+            const { data, error } = await supabaseClient.rpc('confirmar_entrega', {
+                p_pedido_id: pedidoSeleccionadoParaEntrega.id,
+                p_nombre_confirmado: nombreConfirmado
+            });
+
+            if (error || data?.error) {
+                showAlert('error', data?.error || 'Error al confirmar');
+            } else {
+                showAlert('success', '✅ ¡Entrega confirmada! El efectivo es tuyo, recuerda pagar tu comisión al final del día.');
+                closeModal('modalConfirmarEntrega');
+                pedidoSeleccionadoParaEntrega = null;
+                await cargarTodo();
+            }
+        }
+
+        // =============================================
+        // MAPA CON LEAFLET
+        // =============================================
+        async function mostrarMapaPedido(pedidoId) {
+            document.querySelectorAll('.bottom-nav .nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector('[data-section="sec-mapa"]').classList.add('active');
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById('sec-mapa').classList.add('active');
+
+            const { data } = await supabaseClient
+                .from('pedidos')
+                .select('*, punto_a:punto_a_id(*), punto_b:punto_b_id(*)')
+                .eq('id', pedidoId)
+                .single();
+
+            if (!data) { showAlert('error', 'Pedido no encontrado'); return; }
+            pedidoActualMapa = data;
+            setTimeout(() => inicializarMapa(data), 300);
+        }
+
+        function inicializarMapa(pedido) {
+            if (mapaLeaflet) { mapaLeaflet.remove(); mapaLeaflet = null; }
+            marcadoresMapa = [];
+
+            const latA = parseFloat(pedido.punto_a?.latitud || 0);
+            const lonA = parseFloat(pedido.punto_a?.longitud || 0);
+            const latB = parseFloat(pedido.punto_b?.latitud || 0);
+            const lonB = parseFloat(pedido.punto_b?.longitud || 0);
+
+            mapaLeaflet = L.map('mapContainer').setView([latA, lonA], 14);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19
+            }).addTo(mapaLeaflet);
+
+            // Marcador Punto A (Recogida)
+            const iconoA = L.divIcon({
+                html: '<div style="background:#FF6B35;color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">A</div>',
+                className: '',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            const markerA = L.marker([latA, lonA], { icon: iconoA })
+                .addTo(mapaLeaflet)
+                .bindPopup('<strong>📍 Punto de Recogida</strong><br>Ve aquí primero');
+            marcadoresMapa.push(markerA);
+
+            // Marcador Punto B (Entrega)
+            const iconoB = L.divIcon({
+                html: '<div style="background:#1A936F;color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">B</div>',
+                className: '',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            const markerB = L.marker([latB, lonB], { icon: iconoB })
+                .addTo(mapaLeaflet)
+                .bindPopup('<strong>📍 Punto de Entrega</strong><br>Entrega el paquete aquí');
+            marcadoresMapa.push(markerB);
+
+            // Línea entre puntos
+            L.polyline([[latA, lonA], [latB, lonB]], {
+                color: '#FF6B35',
+                weight: 3,
+                dashArray: '10, 10'
+            }).addTo(mapaLeaflet);
+
+            // Ajustar vista
+            const bounds = L.latLngBounds([[latA, lonA], [latB, lonB]]);
+            mapaLeaflet.fitBounds(bounds, { padding: [50, 50] });
+
+            // Info
+            document.getElementById('mapInfo').innerHTML = `
+                <strong>#${pedido.numero_pedido}</strong> | ${pedido.distancia_km} km | ~${pedido.tiempo_estimado_con_anticipo} min<br>
+                👤 ${pedido.nombre_contacto} | 💵 Cobrar: $${parseFloat(pedido.precio_total || 0).toFixed(2)}
+            `;
+
+            document.getElementById('mapActions').innerHTML = `
+                <button class="btn btn-map btn-sm" onclick="abrirGoogleMaps('${latA}', '${lonA}')">📍 Ir a Recoger (A)</button>
+                <button class="btn btn-success btn-sm" onclick="abrirGoogleMaps('${latB}', '${lonB}')">📍 Ir a Entregar (B)</button>
+                <button class="btn btn-waze btn-sm" onclick="abrirGoogleMaps('${latA}', '${lonA}', '${latB}', '${lonB}')">🗺️ Ruta Completa</button>
+            `;
+        }
+
+        function abrirGoogleMaps(lat1, lon1, lat2, lon2) {
+            let url;
+            if (lat2 && lon2) {
+                url = `https://www.google.com/maps/dir/?api=1&origin=${lat1},${lon1}&destination=${lat2},${lon2}&travelmode=driving`;
+            } else {
+                url = `https://www.google.com/maps/dir/?api=1&destination=${lat1},${lon1}&travelmode=driving`;
+            }
+            window.open(url, '_blank');
+        }
+
+        // =============================================
+        // PAGOS
+        // =============================================
+        async function cargarPagos() {
+            // Obtener config
+            const { data: config } = await supabaseClient
+                .from('configuracion_sistema')
+                .select('*')
+                .eq('clave', 'numero_deposito')
+                .single();
+            
+            const numeroDep = config?.valor || '4169161112408868';
+            document.getElementById('numeroDepositoDisplay').textContent = numeroDep.replace(/(.{4})/g, '$1 ').trim();
+
+            // Pagos del repartidor
+            const { data: pagos } = await supabaseClient
+                .from('pagos_repartidor')
+                .select('*')
+                .eq('repartidor_id', currentProfile.id)
+                .order('created_at', { ascending: false });
+
+            const todosPagos = pagos || [];
+            
+            // Monto principal a pagar (suma de pendientes)
+            const pendientes = todosPagos.filter(p => p.estado === 'pendiente');
+            const totalPendiente = pendientes.reduce((s, p) => s + parseFloat(p.monto_pagar || 0), 0);
+            document.getElementById('montoAPagarPrincipal').textContent = '$' + totalPendiente.toFixed(2);
+
+            // Llenar select de pagos para comprobante
+            const select = document.getElementById('selectPagoParaComprobante');
+            select.innerHTML = '<option value="">Selecciona el pago que estás cubriendo...</option>';
+            pendientes.forEach(p => {
+                const fecha = new Date(p.fecha_limite_pago).toLocaleDateString('es-MX');
+                select.innerHTML += `<option value="${p.id}">Pago $${parseFloat(p.monto_pagar).toFixed(2)} - Límite: ${fecha}</option>`;
+            });
+
+            // Pagos urgentes
+            const urgentes = todosPagos.filter(p => p.estado === 'vencido' || 
+                (p.estado === 'pendiente' && new Date(p.fecha_limite_pago) < new Date()));
+            const cardUrgente = document.getElementById('cardPagosUrgentes');
+            if (urgentes.length > 0) {
+                cardUrgente.style.display = 'block';
+                document.getElementById('pagosUrgentesBody').innerHTML = urgentes.map(p => `
+                    <div style="padding:10px;border-bottom:1px solid var(--border);">
+                        <strong>$${parseFloat(p.monto_pagar).toFixed(2)}</strong> - 
+                        <span style="color:${p.estado === 'vencido' ? 'var(--danger)' : 'var(--warning)'};">
+                            ${p.estado === 'vencido' ? '⚠️ VENCIDO' : '⏰ Por vencer'}
+                        </span>
+                        <br><small>Límite: ${new Date(p.fecha_limite_pago).toLocaleString('es-MX')}</small>
+                    </div>
+                `).join('');
+            } else {
+                cardUrgente.style.display = 'none';
+            }
+
+            // Historial
+            const bodyHistorial = document.getElementById('historialPagosBody');
+            if (todosPagos.length === 0) {
+                bodyHistorial.innerHTML = '<div class="empty-state"><span class="empty-icon">📜</span>Sin pagos registrados</div>';
+            } else {
+                bodyHistorial.innerHTML = todosPagos.map(p => {
+                    const estadoBadge = {
+                        'pendiente': 'badge-pendiente',
+                        'pagado': 'badge-entregado',
+                        'vencido': 'badge-cancelado'
+                    }[p.estado] || 'badge-pendiente';
+                    return `
+                        <div style="padding:12px;border-bottom:1px solid var(--border);">
+                            <div style="display:flex;justify-content:space-between;">
+                                <strong>$${parseFloat(p.monto_pagar).toFixed(2)}</strong>
+                                <span class="badge-status ${estadoBadge}">${p.estado.toUpperCase()}</span>
+                            </div>
+                            <small style="color:var(--gray);">Límite: ${new Date(p.fecha_limite_pago).toLocaleDateString('es-MX')}</small>
+                            ${p.comprobante_url ? `<br><a href="${p.comprobante_url}" target="_blank" style="font-size:12px;color:var(--secondary);">📎 Ver comprobante</a>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function previewComprobante(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('comprobantePreview');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+                document.getElementById('btnSubirComprobante').disabled = false;
+            }
+        }
+
+        async function subirComprobante() {
+            const pagoId = document.getElementById('selectPagoParaComprobante').value;
+            if (!pagoId) { showAlert('error', 'Selecciona el pago que estás cubriendo'); return; }
+            
+            const file = document.getElementById('fileComprobante').files[0];
+            if (!file) { showAlert('error', 'Selecciona una foto del comprobante'); return; }
+
+            document.getElementById('btnSubirComprobante').disabled = true;
+            document.getElementById('btnSubirComprobante').innerHTML = '<span class="spinner"></span> Subiendo...';
+
+            try {
+                const fileName = `comprobantes/${currentProfile.id}/${Date.now()}_${file.name}`;
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from('documentos')
+                    .upload(fileName, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: urlData } = supabaseClient.storage
+                    .from('documentos')
+                    .getPublicUrl(uploadData.path);
+
+                const { error: updateError } = await supabaseClient
+                    .from('pagos_repartidor')
+                    .update({ 
+                        comprobante_url: urlData.publicUrl,
+                        estado: 'pagado',
+                        fecha_pago: new Date().toISOString()
+                    })
+                    .eq('id', pagoId);
+
+                if (updateError) throw updateError;
+
+                showAlert('success', '✅ ¡Comprobante subido! Pago registrado exitosamente.');
+                document.getElementById('fileComprobante').value = '';
+                document.getElementById('comprobantePreview').style.display = 'none';
+                document.getElementById('selectPagoParaComprobante').value = '';
+                await cargarPagos();
+                await verificarPagosUrgentes();
+            } catch (error) {
+                showAlert('error', 'Error: ' + error.message);
+            } finally {
+                document.getElementById('btnSubirComprobante').disabled = true;
+                document.getElementById('btnSubirComprobante').innerHTML = '📤 Enviar Comprobante';
+            }
+        }
+
+        async function verificarPagosUrgentes() {
+            const { data: pagos } = await supabaseClient
+                .from('pagos_repartidor')
+                .select('*')
+                .eq('repartidor_id', currentProfile.id)
+                .in('estado', ['pendiente', 'vencido']);
+
+            if (pagos && pagos.length > 0) {
+                document.getElementById('alertWarning').style.display = 'block';
+            }
+        }
+
+        // =============================================
+        // HISTORIAL COMPLETO
+        // =============================================
+        async function cargarHistorialCompleto() {
+            const { data } = await supabaseClient
+                .from('pedidos')
+                .select('*')
+                .eq('repartidor_id', currentProfile.id)
+                .order('fecha_creacion', { ascending: false })
+                .limit(50);
+
+            const pedidos = data || [];
+            const body = document.getElementById('historialCompletoBody');
+            
+            if (pedidos.length === 0) {
+                body.innerHTML = '<div class="empty-state"><span class="empty-icon">📚</span>Sin historial de entregas</div>';
+                return;
+            }
+
+            body.innerHTML = pedidos.map(p => {
+                const estadoBadge = {
+                    'pendiente': 'badge-pendiente',
+                    'en_camino': 'badge-camino',
+                    'entregado': 'badge-entregado',
+                    'cancelado': 'badge-cancelado'
+                }[p.estado] || 'badge-pendiente';
+                return `
+                    <div style="padding:12px;border-bottom:1px solid var(--border);">
+                        <div style="display:flex;justify-content:space-between;">
+                            <strong>#${p.numero_pedido}</strong>
+                            <span class="badge-status ${estadoBadge}">${p.estado}</span>
+                        </div>
+                        <div style="font-size:13px;color:var(--gray);">$${parseFloat(p.precio_total || 0).toFixed(2)} | ${p.distancia_km} km</div>
+                        <div style="font-size:12px;color:var(--gray);">${new Date(p.fecha_creacion).toLocaleDateString('es-MX')}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // =============================================
+        // PERFIL
+        // =============================================
+        function mostrarPerfil() {
+            document.getElementById('perfilNombre').textContent = currentProfile.nombre;
+            document.getElementById('perfilTelefono').textContent = '📱 ' + currentProfile.telefono;
+            document.getElementById('perfilEmail').textContent = '📧 ' + (currentProfile.email || 'N/A');
+            document.getElementById('perfilCalificacion').textContent = '⭐ ' + parseFloat(currentProfile.calificacion || 5).toFixed(1);
+            document.getElementById('modalPerfil').classList.add('active');
+        }
+
+        // =============================================
+        // MODAL
+        // =============================================
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.remove('active');
+            });
+        });
+
+        // =============================================
+        // LOGOUT
+        // =============================================
+        async function logout() {
+            if (confirm('¿Cerrar sesión?')) {
+                await supabaseClient.auth.signOut();
+                window.location.href = 'login.html';
+            }
+        }
+
+        console.log('🛵 PediFlash Repartidor - PWA lista');
+        console.log('📋 Funciones: Jornada | Pedidos | Mapa | Pagos | Comprobantes | Historial');
+    </script>
 </body>
 </html>
+
