@@ -2,341 +2,1264 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedi-Flash | Envíos Rápidos y Seguros</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PediFlash - Envíos Rápidos y Seguros</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#FF6B35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PediFlash">
+    <meta name="description" content="PediFlash - La forma más rápida y segura de enviar paquetes en tu ciudad. Repartidores verificados, seguimiento en tiempo real.">
+    <link rel="manifest" href="data:application/json,{
+        \"name\": \"PediFlash\",
+        \"short_name\": \"PediFlash\",
+        \"description\": \"Envíos rápidos y seguros\",
+        \"start_url\": \"/\",
+        \"display\": \"standalone\",
+        \"background_color\": \"#FF6B35\",
+        \"theme_color\": \"#FF6B35\",
+        \"icons\": [
+            {
+                \"src\": \"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23FF6B35'/><text x='50' y='68' text-anchor='middle' font-size='55'>🛵</text></svg>\",
+                \"sizes\": \"100x100\",
+                \"type\": \"image/svg+xml\"
+            }
+        ]
+    }">
+    
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#ff0000">
+    
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        :root {
+            --primary: #FF6B35;
+            --primary-dark: #E55A2B;
+            --primary-light: #FFF5F0;
+            --secondary: #1A1A2E;
+            --accent: #1A936F;
+            --danger: #DC3545;
+            --warning: #FFC107;
+            --dark: #212529;
+            --gray: #6C757D;
+            --light: #F8F9FA;
+            --white: #FFFFFF;
+            --radius: 20px;
+            --radius-sm: 12px;
+            --shadow: 0 10px 40px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.12);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            transition: transform 0.3s ease;
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .pulse {
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 80px;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #FFFBF8;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ========== NAVBAR ========== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 15px 0;
+            transition: var(--transition);
+            background: transparent;
+        }
+
+        .navbar.scrolled {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            padding: 10px 0;
+        }
+
+        .navbar .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .navbar .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 24px;
+            color: var(--white);
+            transition: var(--transition);
+        }
+
+        .navbar.scrolled .logo {
+            color: var(--secondary);
+        }
+
+        .logo-img {
+            width: 42px;
+            height: 42px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 15px rgba(255,107,53,0.3);
+        }
+
+        .logo-text span {
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            color: rgba(255,255,255,0.9);
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .navbar.scrolled .nav-links a {
+            color: var(--dark);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .btn-nav {
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-block;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 20px rgba(255,107,53,0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255,107,53,0.4);
+        }
+
+        .btn-outline-light {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.5);
+            color: white;
+        }
+
+        .navbar.scrolled .btn-outline-light {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--white);
+            transition: var(--transition);
+        }
+
+        .navbar.scrolled .menu-toggle {
+            color: var(--secondary);
+        }
+
+        /* ========== HERO ========== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+            padding: 120px 0 80px;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255,107,53,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(26,147,111,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -30px) scale(1.05); }
+        }
+
+        .hero .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content h1 {
+            font-size: clamp(40px, 6vw, 64px);
+            font-weight: 900;
+            line-height: 1.1;
+            color: white;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+        }
+
+        .hero-content h1 .highlight {
+            background: linear-gradient(135deg, var(--primary), #FF8C5A);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-content p {
+            font-size: 18px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 35px;
+            max-width: 500px;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .hero-buttons .btn {
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .btn-hero-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 8px 30px rgba(255,107,53,0.4);
+            border: none;
+        }
+
+        .btn-hero-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(255,107,53,0.5);
+        }
+
+        .btn-hero-secondary {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        .btn-hero-secondary:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: white;
+        }
+
+        .hero-visual {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .hero-phone {
+            width: 280px;
+            height: 560px;
+            background: linear-gradient(145deg, #2d2d3f, #1a1a2e);
+            border-radius: 40px;
+            padding: 15px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-phone-screen {
+            background: var(--primary-light);
+            border-radius: 28px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+            text-align: center;
+            font-size: 50px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .phone-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
             animation: pulse 2s infinite;
         }
+
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+            0% { box-shadow: 0 0 0 0 rgba(26,147,111,0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(26,147,111,0); }
+            100% { box-shadow: 0 0 0 0 rgba(26,147,111,0); }
+        }
+
+        .floating-card {
+            position: absolute;
+            background: white;
+            border-radius: 16px;
+            padding: 15px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 2;
+            animation: floatCard 5s ease-in-out infinite;
+        }
+
+        .floating-card.top {
+            top: 10%;
+            right: -30px;
+            animation-delay: 0s;
+        }
+
+        .floating-card.bottom {
+            bottom: 15%;
+            left: -20px;
+            animation-delay: 2.5s;
+        }
+
+        @keyframes floatCard {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* ========== STATS BAR ========== */
+        .stats-bar {
+            background: white;
+            padding: 30px 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 2;
+            margin-top: -60px;
+            border-radius: 30px 30px 0 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--gray);
+            margin-top: 5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ========== SECTIONS ========== */
+        .section {
+            padding: 100px 0;
+        }
+
+        .section .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 70px;
+        }
+
+        .section-badge {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 900;
+            color: var(--secondary);
+            margin-bottom: 15px;
+            letter-spacing: -1px;
+        }
+
+        .section-subtitle {
+            font-size: 18px;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ========== SERVICES ========== */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 30px;
+        }
+
+        .service-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 40px 30px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 1px solid #F0F0F0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .service-card:hover::before {
+            opacity: 1;
+        }
+
+        .service-icon {
+            width: 65px;
+            height: 65px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .service-icon.orange {
+            background: #FFF5F0;
+            color: var(--primary);
+        }
+
+        .service-icon.green {
+            background: #F0FFF8;
+            color: var(--accent);
+        }
+
+        .service-card h3 {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+
+        .service-card p {
+            color: var(--gray);
+            line-height: 1.8;
+        }
+
+        /* ========== STEPS ========== */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+        }
+
+        .step-card {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            font-size: 28px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 25px rgba(255,107,53,0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-card::after {
+            content: '';
+            position: absolute;
+            top: 35px;
+            left: calc(50% + 35px);
+            width: calc(100% - 70px);
+            height: 2px;
+            background: var(--border, #DEE2E6);
+            z-index: 0;
+        }
+
+        .step-card:last-child::after {
+            display: none;
+        }
+
+        .step-card h4 {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: var(--secondary);
+        }
+
+        .step-card p {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        /* ========== PRICING ========== */
+        .pricing-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 45px 35px;
+            box-shadow: var(--shadow-lg);
+            max-width: 450px;
+            margin: 0 auto;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: var(--transition);
+        }
+
+        .pricing-card:hover {
+            border-color: var(--primary);
+        }
+
+        .pricing-amount {
+            font-size: 60px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .pricing-unit {
+            font-size: 18px;
+            color: var(--gray);
+        }
+
+        .pricing-features {
+            list-style: none;
+            padding: 0;
+            margin: 30px 0;
+        }
+
+        .pricing-features li {
+            padding: 12px 0;
+            border-bottom: 1px solid #F0F0F0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+
+        .pricing-features li i {
+            color: var(--accent);
+        }
+
+        /* ========== CTA ========== */
+        .cta-section {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            text-align: center;
+            padding: 100px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,107,53,0.2) 0%, transparent 70%);
+            top: -250px;
+            right: -100px;
+            border-radius: 50%;
+        }
+
+        .cta-section h2 {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 900;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .cta-section p {
+            font-size: 18px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 35px;
+            position: relative;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            background: var(--secondary);
+            color: white;
+            padding: 60px 0 30px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .footer h4 {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .footer a {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            display: block;
+            padding: 5px 0;
+            transition: var(--transition);
+        }
+
+        .footer a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 968px) {
+            .hero .container {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-content p {
+                margin: 0 auto 35px;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .hero-visual {
+                display: none;
+            }
+
+            .steps-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .step-card::after {
+                display: none;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 80%;
+                max-width: 350px;
+                height: 100vh;
+                background: white;
+                flex-direction: column;
+                padding: 100px 30px 30px;
+                gap: 20px;
+                transition: var(--transition);
+                box-shadow: -10px 0 40px rgba(0,0,0,0.1);
+                z-index: 999;
+            }
+
+            .nav-links.active {
+                right: 0;
+            }
+
+            .nav-links a {
+                color: var(--dark) !important;
+                font-size: 18px;
+            }
+
+            .menu-toggle {
+                display: block;
+                z-index: 1000;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .hero-buttons .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* ========== MOBILE MENU OVERLAY ========== */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 998;
+        }
+
+        .menu-overlay.active {
+            display: block;
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Navbar -->
-    <nav class="gradient-bg text-white shadow-lg">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <i class="fas fa-bolt text-3xl mr-3"></i>
-                    <span class="text-2xl font-bold">Pedi-Flash</span>
-                </div>
-                <div class="hidden md:flex space-x-8">
-                    <a href="#inicio" class="hover:text-yellow-300 transition">Inicio</a>
-                    <a href="#servicios" class="hover:text-yellow-300 transition">Servicios</a>
-                    <a href="#como-funciona" class="hover:text-yellow-300 transition">Cómo Funciona</a>
-                    <a href="#beneficios" class="hover:text-yellow-300 transition">Beneficios</a>
-                    <a href="login.html" class="bg-white text-purple-700 px-6 py-2 rounded-full font-semibold hover:bg-yellow-300 transition pulse">
-                        Comenzar Ahora
-                    </a>
-                </div>
-                <button class="md:hidden text-white focus:outline-none" id="menuBtn">
-                    <i class="fas fa-bars text-2xl"></i>
-                </button>
+<body>
+
+    <!-- ========== NAVBAR ========== -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="#" class="logo">
+                <div class="logo-img">🛵</div>
+                <div class="logo-text">Pedi<span>Flash</span></div>
+            </a>
+
+            <div class="nav-links" id="navLinks">
+                <a href="#inicio">Inicio</a>
+                <a href="#servicios">Servicios</a>
+                <a href="#como-funciona">Cómo Funciona</a>
+                <a href="#precios">Precios</a>
+                <a href="login.html" class="btn-nav btn-primary">Comenzar Ahora 🚀</a>
             </div>
+
+            <button class="menu-toggle" id="menuToggle" aria-label="Menú">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section id="inicio" class="gradient-bg text-white py-20">
-        <div class="container mx-auto px-6 text-center">
-            <h1 class="text-5xl md:text-6xl font-bold mb-6">
-                Tus Envíos en <span class="text-yellow-300">Minutos</span>
-            </h1>
-            <p class="text-xl md:text-2xl mb-8">
-                La forma más rápida, segura y confiable de enviar o recibir paquetes en tu ciudad
-            </p>
-            <div class="flex justify-center space-x-4">
-                <a href="login.html" class="bg-white text-purple-700 px-8 py-3 rounded-full text-lg font-bold hover:bg-yellow-300 transition transform hover:scale-105">
-                    Pedir un Envío
-                </a>
-                <a href="#servicios" class="border-2 border-white px-8 py-3 rounded-full text-lg font-bold hover:bg-white hover:text-purple-700 transition">
-                    Conocer Más
-                </a>
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- ========== HERO ========== -->
+    <section class="hero" id="inicio">
+        <div class="container">
+            <div class="hero-content">
+                <h1>
+                    Tus envíos en<br>
+                    <span class="highlight">cuestión de minutos</span>
+                </h1>
+                <p>
+                    La app de envíos urbanos más rápida de México. 
+                    Repartidores verificados, seguimiento en tiempo real y el mejor precio por kilómetro.
+                </p>
+                <div class="hero-buttons">
+                    <a href="login.html" class="btn btn-hero-primary">
+                        🚀 Solicitar un Envío
+                    </a>
+                    <a href="#como-funciona" class="btn btn-hero-secondary">
+                        ▶ Ver Cómo Funciona
+                    </a>
+                </div>
             </div>
-            <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white bg-opacity-20 p-6 rounded-lg backdrop-blur-sm">
-                    <i class="fas fa-bolt text-3xl mb-3"></i>
-                    <h3 class="text-2xl font-bold mb-2">Rápido</h3>
-                    <p>Entregas en menos de 30 minutos</p>
+
+            <div class="hero-visual">
+                <div class="hero-phone">
+                    <div class="hero-phone-screen">
+                        <div style="font-size:60px;margin-bottom:15px;">🛵</div>
+                        <div style="font-weight:800;font-size:18px;color:var(--secondary);">PediFlash</div>
+                        <div style="font-size:13px;color:var(--gray);margin:5px 0;">Entrega express</div>
+                        <div style="background:white;border-radius:12px;padding:12px 15px;margin-top:10px;font-size:12px;width:100%;text-align:left;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                            📦 Pedido #1248<br>
+                            <span style="color:var(--accent);font-weight:700;">En camino...</span><br>
+                            <small style="color:var(--gray);">Llega en ~15 min</small>
+                        </div>
+                        <div class="phone-badge">✓</div>
+                    </div>
                 </div>
-                <div class="bg-white bg-opacity-20 p-6 rounded-lg backdrop-blur-sm">
-                    <i class="fas fa-shield-alt text-3xl mb-3"></i>
-                    <h3 class="text-2xl font-bold mb-2">Seguro</h3>
-                    <p>Repartidores verificados y calificados</p>
+                <div class="floating-card top">
+                    🏃 Repartidor en camino...
                 </div>
-                <div class="bg-white bg-opacity-20 p-6 rounded-lg backdrop-blur-sm">
-                    <i class="fas fa-money-bill-wave text-3xl mb-3"></i>
-                    <h3 class="text-2xl font-bold mb-2">Económico</h3>
-                    <p>$20 MXN por kilómetro</p>
+                <div class="floating-card bottom">
+                    ⭐ 4.9 Calificación
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Servicios Section -->
-    <section id="servicios" class="py-20 bg-white">
-        <div class="container mx-auto px-6">
-            <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">Nuestros Servicios</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="feature-card bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-xl shadow-lg border border-blue-200">
-                    <div class="text-blue-600 text-4xl mb-4">
-                        <i class="fas fa-paper-plane"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4 text-gray-800">Envío de Paquetes</h3>
-                    <p class="text-gray-600 mb-4">
-                        Envía documentos, regalos, comida o cualquier paquete a donde necesites. 
-                        Nuestros repartidores recogen y entregan directamente.
+    <!-- ========== STATS BAR ========== -->
+    <div class="stats-bar">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" data-target="5000">0</div>
+                <div class="stat-label">Pedidos Entregados</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" data-target="150">0</div>
+                <div class="stat-label">Repartidores Activos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" data-target="98">0</div>
+                <div class="stat-label">% Satisfacción</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" data-target="15">0</div>
+                <div class="stat-label">Min Promedio Entrega</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SERVICIOS ========== -->
+    <section class="section" id="servicios" style="background:white;">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-badge">Nuestros Servicios</div>
+                <h2 class="section-title">Soluciones de envío para ti</h2>
+                <p class="section-subtitle">Dos modalidades que se adaptan a lo que necesitas</p>
+            </div>
+
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon orange">📤</div>
+                    <h3>Envío de Paquetes</h3>
+                    <p>
+                        ¿Necesitas enviar algo? Un repartidor recoge tu paquete en el Punto A 
+                        y lo entrega directamente en el Punto B. Ideal para documentos, regalos, comida y más.
                     </p>
-                    <ul class="space-y-2 text-gray-600">
-                        <li><i class="fas fa-check text-green-500 mr-2"></i>Recogida en punto A</li>
-                        <li><i class="fas fa-check text-green-500 mr-2"></i>Entrega en punto B</li>
-                        <li><i class="fas fa-check text-green-500 mr-2"></i>Seguimiento en tiempo real</li>
+                    <ul style="list-style:none;margin-top:15px;">
+                        <li style="padding:5px 0;">✓ Recogida inmediata</li>
+                        <li style="padding:5px 0;">✓ Entrega directa sin escalas</li>
+                        <li style="padding:5px 0;">✓ Seguimiento en tiempo real</li>
                     </ul>
                 </div>
-                <div class="feature-card bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl shadow-lg border border-green-200">
-                    <div class="text-green-600 text-4xl mb-4">
-                        <i class="fas fa-box-open"></i>
-                    </div>
-                    <h3 class="text-2xl font-bold mb-4 text-gray-800">Recepción de Paquetes</h3>
-                    <p class="text-gray-600 mb-4">
-                        ¿Necesitas que alguien recoja algo por ti? Programa una recepción y 
-                        un repartidor lo recogerá y te lo entregará.
+
+                <div class="service-card">
+                    <div class="service-icon green">📥</div>
+                    <h3>Recepción de Paquetes</h3>
+                    <p>
+                        Programa una recogida: un repartidor va al Punto A, recoge lo que necesitas 
+                        y te lo trae al Punto B. Perfecto para compras, trámites o encomiendas.
                     </p>
-                    <ul class="space-y-2 text-gray-600">
-                        <li><i class="fas fa-check text-green-500 mr-2"></i>Recogida programada</li>
-                        <li><i class="fas fa-check text-green-500 mr-2"></i>Verificación del remitente</li>
-                        <li><i class="fas fa-check text-green-500 mr-2"></i>Confirmación de entrega</li>
+                    <ul style="list-style:none;margin-top:15px;">
+                        <li style="padding:5px 0;">✓ Recogida programada</li>
+                        <li style="padding:5px 0;">✓ Verificación del remitente</li>
+                        <li style="padding:5px 0;">✓ Confirmación al recibir</li>
                     </ul>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Cómo Funciona Section -->
-    <section id="como-funciona" class="py-20 bg-gray-100">
-        <div class="container mx-auto px-6">
-            <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">¿Cómo Funciona?</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div class="text-center">
-                    <div class="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <span class="text-3xl font-bold text-purple-600">1</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">Regístrate</h3>
-                    <p class="text-gray-600">Crea tu cuenta gratuita como cliente o repartidor</p>
-                </div>
-                <div class="text-center">
-                    <div class="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <span class="text-3xl font-bold text-purple-600">2</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">Solicita</h3>
-                    <p class="text-gray-600">Indica los puntos de recogida y entrega en el mapa</p>
-                </div>
-                <div class="text-center">
-                    <div class="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <span class="text-3xl font-bold text-purple-600">3</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">Confirma</h3>
-                    <p class="text-gray-600">Revisa distancia, tiempo y precio estimado</p>
-                </div>
-                <div class="text-center">
-                    <div class="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <span class="text-3xl font-bold text-purple-600">4</span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">¡Recibe!</h3>
-                    <p class="text-gray-600">Un repartidor toma tu pedido y lo entrega rapidísimo</p>
-                </div>
+    <!-- ========== CÓMO FUNCIONA ========== -->
+    <section class="section" id="como-funciona" style="background:#FFFBF8;">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-badge">Proceso Simple</div>
+                <h2 class="section-title">¿Cómo funciona?</h2>
+                <p class="section-subtitle">Solo 4 pasos para enviar o recibir tu paquete</p>
             </div>
-            <div class="text-center mt-12">
-                <img src="https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=800" 
-                     alt="Repartidor" 
-                     class="rounded-xl shadow-2xl mx-auto max-w-2xl">
-            </div>
-        </div>
-    </section>
 
-    <!-- Beneficios Section -->
-    <section id="beneficios" class="py-20 bg-white">
-        <div class="container mx-auto px-6">
-            <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">¿Por Qué Elegir Pedi-Flash?</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="feature-card text-center p-8 bg-white rounded-xl shadow-lg border">
-                    <i class="fas fa-clock text-5xl text-purple-600 mb-4"></i>
-                    <h3 class="text-2xl font-bold mb-3">Tiempo Real</h3>
-                    <p class="text-gray-600">
-                        Calculamos el tiempo exacto de entrega y añadimos solo 10 minutos de margen. 
-                        ¡Sabrás exactamente cuándo llega tu paquete!
-                    </p>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>Regístrate</h4>
+                    <p>Crea tu cuenta gratis en segundos como cliente</p>
                 </div>
-                <div class="feature-card text-center p-8 bg-white rounded-xl shadow-lg border">
-                    <i class="fas fa-user-check text-5xl text-purple-600 mb-4"></i>
-                    <h3 class="text-2xl font-bold mb-3">Repartidores Confiables</h3>
-                    <p class="text-gray-600">
-                        Todos nuestros repartidores están verificados con credencial oficial y foto de rostro. 
-                        Calificados por la comunidad.
-                    </p>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>Selecciona Puntos</h4>
+                    <p>Elige el punto de recogida y el de entrega en el mapa</p>
                 </div>
-                <div class="feature-card text-center p-8 bg-white rounded-xl shadow-lg border">
-                    <i class="fas fa-map-marked-alt text-5xl text-purple-600 mb-4"></i>
-                    <h3 class="text-2xl font-bold mb-3">Cobertura Inteligente</h3>
-                    <p class="text-gray-600">
-                        Usamos tecnología geoespacial para cálculos precisos de distancia. 
-                        Pagas solo por los kilómetros recorridos.
-                    </p>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>Confirma</h4>
+                    <p>Revisa distancia, tiempo estimado y precio transparente</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h4>¡Recibe!</h4>
+                    <p>Un repartidor toma tu pedido y lo entrega rapidísimo</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Precios Section -->
-    <section class="py-20 bg-purple-600 text-white">
-        <div class="container mx-auto px-6 text-center">
-            <h2 class="text-4xl font-bold mb-6">Precios Transparentes</h2>
-            <p class="text-xl mb-8">Solo $20 MXN por kilómetro recorrido</p>
-            <div class="bg-white text-gray-800 p-8 rounded-xl max-w-md mx-auto shadow-2xl">
-                <h3 class="text-2xl font-bold mb-4">Ejemplo de envío</h3>
-                <div class="space-y-3 text-left">
-                    <div class="flex justify-between">
-                        <span>Distancia:</span>
-                        <span class="font-bold">5 km</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>Precio por km:</span>
-                        <span class="font-bold">$20 MXN</span>
-                    </div>
-                    <hr>
-                    <div class="flex justify-between text-xl font-bold">
-                        <span>Total:</span>
-                        <span class="text-purple-600">$100 MXN</span>
-                    </div>
-                    <div class="flex justify-between text-sm text-gray-500">
-                        <span>Tiempo estimado:</span>
-                        <span>~10 minutos</span>
-                    </div>
-                </div>
+    <!-- ========== PRECIOS ========== -->
+    <section class="section" id="precios" style="background:white;">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-badge">Precios Transparentes</div>
+                <h2 class="section-title">$20 MXN por kilómetro</h2>
+                <p class="section-subtitle">Sin costos ocultos. Pagas solo por la distancia recorrida.</p>
             </div>
-        </div>
-    </section>
 
-    <!-- CTA Section -->
-    <section class="py-20 bg-white">
-        <div class="container mx-auto px-6 text-center">
-            <h2 class="text-4xl font-bold mb-6 text-gray-800">¿Listo para Empezar?</h2>
-            <p class="text-xl mb-8 text-gray-600">
-                Únete a miles de usuarios que ya confían en Pedi-Flash para sus envíos diarios
-            </p>
-            <div class="flex justify-center space-x-4">
-                <a href="login.html" class="gradient-bg text-white px-10 py-4 rounded-full text-lg font-bold hover:opacity-90 transition transform hover:scale-105 shadow-lg">
-                    Crear Cuenta Gratis
-                </a>
-                <a href="login.html" class="border-2 border-purple-600 text-purple-600 px-10 py-4 rounded-full text-lg font-bold hover:bg-purple-600 hover:text-white transition">
-                    Iniciar Sesión
+            <div class="pricing-card">
+                <div class="pricing-amount">$20</div>
+                <div class="pricing-unit">MXN / kilómetro</div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check-circle"></i> Cálculo preciso de distancia</li>
+                    <li><i class="fas fa-check-circle"></i> Tiempo estimado exacto</li>
+                    <li><i class="fas fa-check-circle"></i> 10 min de margen adicional</li>
+                    <li><i class="fas fa-check-circle"></i> Repartidores verificados</li>
+                    <li><i class="fas fa-check-circle"></i> Soporte 24/7</li>
+                </ul>
+                <div style="background:#F8F9FA;border-radius:12px;padding:15px;margin-top:15px;">
+                    <strong>Ejemplo:</strong> 5 km = $100 MXN<br>
+                    <small style="color:var(--gray);">Tiempo estimado: ~10 minutos</small>
+                </div>
+                <a href="login.html" class="btn btn-primary" style="display:block;margin-top:20px;text-align:center;padding:16px;">
+                    ¡Comenzar Ahora!
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                    <div class="flex items-center mb-4">
-                        <i class="fas fa-bolt text-2xl mr-2"></i>
-                        <span class="text-xl font-bold">Pedi-Flash</span>
-                    </div>
-                    <p class="text-gray-400">
-                        La revolución en envíos urbanos. Rápidos, seguros y al mejor precio.
-                    </p>
+    <!-- ========== CTA ========== -->
+    <section class="cta-section">
+        <div class="container">
+            <h2>¿Listo para enviar?</h2>
+            <p>Únete a la comunidad de entrega más rápida de México</p>
+            <div style="display:flex;gap:15px;justify-content:center;flex-wrap:wrap;position:relative;">
+                <a href="login.html" class="btn btn-hero-primary" style="font-size:16px;padding:18px 35px;">
+                    🚀 Crear Cuenta Gratis
+                </a>
+                <a href="login.html" class="btn btn-hero-secondary" style="font-size:16px;padding:18px 35px;">
+                    🔑 Iniciar Sesión
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
+                    <div class="logo-img" style="width:38px;height:38px;font-size:18px;">🛵</div>
+                    <span style="font-size:22px;font-weight:800;">Pedi<span style="color:var(--primary);">Flash</span></span>
                 </div>
-                <div>
-                    <h4 class="text-lg font-bold mb-4">Enlaces Rápidos</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#inicio" class="hover:text-white transition">Inicio</a></li>
-                        <li><a href="#servicios" class="hover:text-white transition">Servicios</a></li>
-                        <li><a href="#como-funciona" class="hover:text-white transition">Cómo Funciona</a></li>
-                        <li><a href="login.html" class="hover:text-white transition">Iniciar Sesión</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="text-lg font-bold mb-4">Contacto</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><i class="fas fa-envelope mr-2"></i> soporte@pediflash.com</li>
-                        <li><i class="fas fa-phone mr-2"></i> +52 221 986 1564</li>
-                        <li><i class="fas fa-map-marker-alt mr-2"></i> Ciudad de México</li>
-                    </ul>
+                <p style="color:rgba(255,255,255,0.6);max-width:350px;">
+                    La forma más rápida y segura de enviar paquetes en tu ciudad. 
+                    Repartidores verificados, seguimiento en tiempo real.
+                </p>
+            </div>
+            <div>
+                <h4>Enlaces</h4>
+                <a href="#inicio">Inicio</a>
+                <a href="#servicios">Servicios</a>
+                <a href="#como-funciona">Cómo Funciona</a>
+                <a href="#precios">Precios</a>
+                <a href="login.html">Iniciar Sesión</a>
+            </div>
+            <div>
+                <h4>Contacto</h4>
+                <a href="mailto:soporte@pediflash.com">📧 soporte@pediflash.com</a>
+                <a href="tel:+522219861564">📱 +52 221 986 1564</a>
+                <a href="#">📍 Ciudad de México</a>
+                <div style="margin-top:15px;display:flex;gap:12px;font-size:20px;">
+                    <a href="#" style="color:rgba(255,255,255,0.6);"><i class="fab fa-facebook"></i></a>
+                    <a href="#" style="color:rgba(255,255,255,0.6);"><i class="fab fa-instagram"></i></a>
+                    <a href="#" style="color:rgba(255,255,255,0.6);"><i class="fab fa-whatsapp"></i></a>
                 </div>
             </div>
-            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-                <p>&copy; 2024 Pedi-Flash. Todos los derechos reservados.</p>
-            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 PediFlash. Todos los derechos reservados. Hecho con ❤️ en México.</p>
         </div>
     </footer>
-    <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => {
-        console.log('Service Worker registrado', reg);
-      })
-      .catch(err => {
-        console.error('Error al registrar el SW:', err);
-      });
-  });
-}
-</script>
 
     <script>
-        // Smooth scroll para los enlaces internos
+        // =============================================
+        // NAVBAR SCROLL EFFECT
+        // =============================================
+        const navbar = document.getElementById('navbar');
+        let lastScroll = 0;
+
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            
+            if (currentScroll > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+            
+            lastScroll = currentScroll;
+        });
+
+        // =============================================
+        // MENÚ MÓVIL
+        // =============================================
+        const menuToggle = document.getElementById('menuToggle');
+        const navLinks = document.getElementById('navLinks');
+        const menuOverlay = document.getElementById('menuOverlay');
+
+        function toggleMenu() {
+            navLinks.classList.toggle('active');
+            menuOverlay.classList.toggle('active');
+            const icon = menuToggle.querySelector('i');
+            if (navLinks.classList.contains('active')) {
+                icon.className = 'fas fa-times';
+                document.body.style.overflow = 'hidden';
+            } else {
+                icon.className = 'fas fa-bars';
+                document.body.style.overflow = '';
+            }
+        }
+
+        menuToggle.addEventListener('click', toggleMenu);
+        menuOverlay.addEventListener('click', toggleMenu);
+
+        // Cerrar menú al hacer clic en un enlace
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (navLinks.classList.contains('active')) {
+                    toggleMenu();
+                }
+            });
+        });
+
+        // =============================================
+        // ANIMACIÓN DE CONTADORES
+        // =============================================
+        function animateCounters() {
+            document.querySelectorAll('.stat-number').forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                const duration = 2000;
+                const startTime = performance.now();
+                
+                function update(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Easing
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const current = Math.floor(target * eased);
+                    
+                    counter.textContent = current.toLocaleString();
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(update);
+                    } else {
+                        counter.textContent = target.toLocaleString();
+                    }
+                }
+                
+                requestAnimationFrame(update);
+            });
+        }
+
+        // Intersection Observer para animar contadores cuando son visibles
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCounters();
+                    statsObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+
+        const statsBar = document.querySelector('.stats-bar');
+        if (statsBar) {
+            statsObserver.observe(statsBar);
+        }
+
+        // =============================================
+        // SMOOTH SCROLL PARA ENLACES INTERNOS
+        // =============================================
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
+            anchor.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href === '#') return;
+                
                 e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
+                const target = document.querySelector(href);
                 if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
+                    const offset = 80;
+                    const position = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                    window.scrollTo({
+                        top: position,
+                        behavior: 'smooth'
                     });
                 }
             });
         });
 
-        // Animación de contador (ejemplo)
-        function animateCounter(element, target, duration = 2000) {
-            let start = 0;
-            const increment = target / (duration / 16);
-            
-            function update() {
-                start += increment;
-                if (start < target) {
-                    element.textContent = Math.floor(start);
-                    requestAnimationFrame(update);
-                } else {
-                    element.textContent = target;
-                }
-            }
-            update();
-        }
+        // =============================================
+        // INICIALIZACIÓN
+        // =============================================
+        console.log('🛵 PediFlash Landing Page - Lista');
+        console.log('📱 PWA Ready | 🎨 Diseño Moderno | ⚡ Rendimiento Óptimo');
 
-        // Menú móvil
-        document.getElementById('menuBtn')?.addEventListener('click', () => {
-            alert('Menú desplegable - Implementar en versión final');
-        });
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Service worker básico para cache
+                const swCode = `
+                    self.addEventListener('install', (e) => {
+                        self.skipWaiting();
+                    });
+                    self.addEventListener('fetch', (e) => {
+                        e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+                    });
+                `;
+                
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                
+                navigator.serviceWorker.register(swUrl)
+                    .then(() => console.log('✅ Service Worker registrado'))
+                    .catch(() => console.log('Service Worker no soportado en este contexto'));
+            });
+        }
     </script>
 </body>
 </html>
+
