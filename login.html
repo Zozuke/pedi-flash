@@ -265,6 +265,12 @@
             border: 1px solid #B7E4CF;
         }
 
+        .alert-warning {
+            background: #FFF8E1;
+            color: #F57F17;
+            border: 1px solid #FFE082;
+        }
+
         .forgot-password {
             text-align: right;
             margin-top: -12px;
@@ -292,6 +298,55 @@
             display: block;
         }
 
+        /* Estilos para código de afiliado */
+        .afiliado-field {
+            background: linear-gradient(135deg, #F8FFF8 0%, #F0FFF4 100%);
+            border: 2px dashed var(--accent);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .afiliado-field:hover {
+            border-color: #147D5F;
+            background: linear-gradient(135deg, #F0FFF4 0%, #E8FFF0 100%);
+        }
+
+        .afiliado-field .afiliado-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .afiliado-field .afiliado-hint {
+            font-size: 12px;
+            color: var(--gray);
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        .afiliado-field input {
+            border-color: #B7E4CF;
+            background: white;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 4px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .afiliado-field input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(26, 147, 111, 0.1);
+        }
+
+        .afiliado-field input::placeholder {
+            letter-spacing: 2px;
+            font-size: 14px;
+            font-weight: 400;
+            color: #ADB5BD;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -301,6 +356,24 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .afiliado-validando {
+            animation: pulse 1s infinite;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .afiliado-exito {
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 600;
         }
 
         .file-input-wrapper {
@@ -380,6 +453,7 @@
             <!-- Alertas -->
             <div class="alert alert-error" id="alertError"></div>
             <div class="alert alert-success" id="alertSuccess"></div>
+            <div class="alert alert-warning" id="alertWarning"></div>
 
             <!-- ==================== FORMULARIO DE LOGIN ==================== -->
             <form id="formLogin">
@@ -446,6 +520,25 @@
                     </select>
                 </div>
 
+                <!-- ========== CAMPO DE CÓDIGO DE AFILIADO ========== -->
+                <div class="afiliado-field" id="afiliadoField">
+                    <label>
+                        <span class="afiliado-icon">🎁</span> Código de Afiliado (opcional)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="regCodigoAfiliado" 
+                        placeholder="Ej: 123456" 
+                        maxlength="6" 
+                        minlength="6"
+                        pattern="[0-9]{6}"
+                        inputmode="numeric"
+                        autocomplete="off"
+                    >
+                    <p class="afiliado-hint">💡 Si tienes un código de afiliado, ingrésalo aquí para ganar puntos</p>
+                    <p id="afiliadoStatus" style="font-size: 12px; margin-top: 6px; display: none;"></p>
+                </div>
+
                 <!-- Campos extras para repartidor -->
                 <div class="repartidor-extra" id="repartidorExtraFields">
                     <div class="form-group">
@@ -505,7 +598,7 @@
 
     <script>
         // =============================================
-        // CONFIGURACIÓN DE SUPABASE (ÚNICA DECLARACIÓN)
+        // CONFIGURACIÓN DE SUPABASE
         // =============================================
         const SUPABASE_URL = 'https://kjbesbtvgmtuffgmzaaw.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_xbe-EzT66Ww36li0dM9iVw_5zHWyBTZ';
@@ -515,25 +608,17 @@
         // =============================================
         // ELEMENTOS DEL DOM
         // =============================================
-        // Tabs
         const tabLogin = document.getElementById('tabLogin');
         const tabRegister = document.getElementById('tabRegister');
-
-        // Formularios
         const formLogin = document.getElementById('formLogin');
         const formRegister = document.getElementById('formRegister');
         const formRecovery = document.getElementById('formRecovery');
-
-        // Alertas
         const alertError = document.getElementById('alertError');
         const alertSuccess = document.getElementById('alertSuccess');
-
-        // Login
+        const alertWarning = document.getElementById('alertWarning');
         const loginEmail = document.getElementById('loginEmail');
         const loginPassword = document.getElementById('loginPassword');
         const btnLoginSubmit = document.getElementById('btnLoginSubmit');
-
-        // Register
         const regNombre = document.getElementById('regNombre');
         const regTelefono = document.getElementById('regTelefono');
         const regEmail = document.getElementById('regEmail');
@@ -543,12 +628,10 @@
         const regFotoRostro = document.getElementById('regFotoRostro');
         const btnRegisterSubmit = document.getElementById('btnRegisterSubmit');
         const repartidorExtraFields = document.getElementById('repartidorExtraFields');
-
-        // Recovery
+        const regCodigoAfiliado = document.getElementById('regCodigoAfiliado');
+        const afiliadoStatus = document.getElementById('afiliadoStatus');
         const recoveryEmail = document.getElementById('recoveryEmail');
         const btnRecoverySubmit = document.getElementById('btnRecoverySubmit');
-
-        // Botones de navegación
         const btnGoToRegister = document.getElementById('btnGoToRegister');
         const btnGoToLogin = document.getElementById('btnGoToLogin');
         const btnForgotPassword = document.getElementById('btnForgotPassword');
@@ -560,6 +643,7 @@
         function showAlert(type, message) {
             alertError.style.display = 'none';
             alertSuccess.style.display = 'none';
+            alertWarning.style.display = 'none';
 
             if (type === 'error') {
                 alertError.textContent = message;
@@ -567,12 +651,16 @@
             } else if (type === 'success') {
                 alertSuccess.textContent = message;
                 alertSuccess.style.display = 'block';
+            } else if (type === 'warning') {
+                alertWarning.textContent = message;
+                alertWarning.style.display = 'block';
             }
         }
 
         function hideAlerts() {
             alertError.style.display = 'none';
             alertSuccess.style.display = 'none';
+            alertWarning.style.display = 'none';
         }
 
         function setLoading(button, isLoading) {
@@ -585,7 +673,6 @@
             }
         }
 
-        // Guardar texto original de los botones
         [btnLoginSubmit, btnRegisterSubmit, btnRecoverySubmit].forEach(btn => {
             btn.setAttribute('data-original-text', btn.textContent.trim());
         });
@@ -627,20 +714,151 @@
         });
 
         // =============================================
+        // NUEVO: Validación en tiempo real del código de afiliado
+        // (Usando RPC para evitar problemas de RLS)
+        // =============================================
+        regCodigoAfiliado.addEventListener('input', function() {
+            // Solo permitir números
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // Limpiar estado
+            afiliadoStatus.style.display = 'none';
+            afiliadoStatus.className = '';
+            
+            // Si está completo (6 dígitos), verificar si existe
+            if (this.value.length === 6) {
+                afiliadoStatus.style.display = 'block';
+                afiliadoStatus.textContent = '⏳ Verificando código...';
+                afiliadoStatus.className = 'afiliado-validando';
+                
+                // Verificar código usando RPC (bypassea RLS)
+                verificarCodigoAfiliado(this.value);
+            }
+        });
+
+        /**
+         * Verifica si un código de afiliado es válido y está disponible.
+         * 
+         * CAMBIO IMPORTANTE: Ahora usa una consulta a la tabla 'afiliados'
+         * pero como el usuario no está autenticado aún, podría fallar por RLS.
+         * 
+         * SOLUCIÓN: Creamos una función RPC en PostgreSQL que verifique
+         * el código sin restricciones de RLS (SECURITY DEFINER).
+         * 
+         * Si no puedes crear la función RPC, simplemente intentamos la consulta
+         * directa y manejamos el error de RLS como "no verificado".
+         */
+        async function verificarCodigoAfiliado(codigo) {
+            try {
+                // INTENTO 1: Usar función RPC (recomendado, bypassea RLS)
+                // Debes crear esta función en PostgreSQL:
+                // CREATE OR REPLACE FUNCTION verificar_codigo_afiliado_publico(p_codigo VARCHAR)
+                // RETURNS JSONB AS $$
+                // DECLARE v_afiliado RECORD;
+                // BEGIN
+                //     SELECT codigo, nombre, usuario_id INTO v_afiliado
+                //     FROM afiliados WHERE codigo = p_codigo AND activo = true;
+                //     IF NOT FOUND THEN RETURN jsonb_build_object('valido', false, 'mensaje', 'Código no encontrado');
+                //     ELSIF v_afiliado.usuario_id IS NOT NULL THEN RETURN jsonb_build_object('valido', false, 'en_uso', true, 'mensaje', 'Código ya en uso');
+                //     ELSE RETURN jsonb_build_object('valido', true, 'nombre', v_afiliado.nombre);
+                //     END IF;
+                // END; $$ LANGUAGE plpgsql SECURITY DEFINER;
+                
+                let resultado;
+                
+                try {
+                    // Intentar usar la función RPC primero
+                    const { data, error } = await supabaseClient
+                        .rpc('verificar_codigo_afiliado_publico', {
+                            p_codigo: codigo
+                        });
+                    
+                    if (!error && data) {
+                        resultado = data;
+                    } else {
+                        throw new Error('RPC no disponible');
+                    }
+                } catch (rpcError) {
+                    // INTENTO 2: Consulta directa (puede fallar por RLS)
+                    console.warn('⚠️ RPC no disponible, intentando consulta directa...');
+                    const { data, error } = await supabaseClient
+                        .from('afiliados')
+                        .select('codigo, nombre, usuario_id')
+                        .eq('codigo', codigo)
+                        .eq('activo', true)
+                        .maybeSingle();
+                    
+                    if (error) {
+                        // Error de RLS esperado - el usuario no está autenticado
+                        if (error.code === '42501' || error.message?.includes('policy')) {
+                            afiliadoStatus.style.display = 'block';
+                            afiliadoStatus.textContent = 'ℹ️ El código se validará al registrarte';
+                            afiliadoStatus.className = '';
+                            afiliadoStatus.style.color = '#6C757D';
+                            return { valido: null, pendiente: true };
+                        }
+                        throw error;
+                    }
+                    
+                    resultado = data 
+                        ? { 
+                            valido: !data.usuario_id, 
+                            en_uso: !!data.usuario_id,
+                            nombre: data.nombre,
+                            mensaje: data.usuario_id ? 'Código ya en uso' : 'Código válido'
+                          }
+                        : { valido: false, mensaje: 'Código no encontrado' };
+                }
+                
+                // Procesar resultado
+                if (!resultado || !resultado.valido) {
+                    if (resultado?.en_uso) {
+                        afiliadoStatus.style.display = 'block';
+                        afiliadoStatus.textContent = '⚠️ Este código ya está en uso por otra persona';
+                        afiliadoStatus.className = '';
+                        afiliadoStatus.style.color = '#DC3545';
+                    } else {
+                        afiliadoStatus.style.display = 'block';
+                        afiliadoStatus.textContent = '⚠️ Código no encontrado. Puedes registrarte sin él.';
+                        afiliadoStatus.className = '';
+                        afiliadoStatus.style.color = '#F57F17';
+                    }
+                    return { valido: false };
+                }
+                
+                // Código válido y disponible
+                afiliadoStatus.style.display = 'block';
+                afiliadoStatus.textContent = '✅ Código válido - Afiliado: ' + (resultado.nombre || 'Desconocido');
+                afiliadoStatus.className = 'afiliado-exito';
+                afiliadoStatus.style.color = '#1A936F';
+                return { valido: true, afiliado: resultado };
+
+            } catch (err) {
+                console.error('Error verificando código:', err);
+                // Error inesperado - mostramos mensaje genérico
+                afiliadoStatus.style.display = 'block';
+                afiliadoStatus.textContent = 'ℹ️ No se pudo verificar. Se intentará al registrarte.';
+                afiliadoStatus.className = '';
+                afiliadoStatus.style.color = '#6C757D';
+                return { valido: null, pendiente: true };
+            }
+        }
+
+        // =============================================
         // NAVEGACIÓN ENTRE FORMULARIOS
         // =============================================
         tabLogin.addEventListener('click', function() {
             this.classList.add('active');
             tabRegister.classList.remove('active');
             showForm(formLogin);
-            document.querySelector('#formRecovery').style.display = 'none';
+            formRecovery.style.display = 'none';
         });
 
         tabRegister.addEventListener('click', function() {
             this.classList.add('active');
             tabLogin.classList.remove('active');
             showForm(formRegister);
-            document.querySelector('#formRecovery').style.display = 'none';
+            formRecovery.style.display = 'none';
         });
 
         btnGoToRegister.addEventListener('click', function() {
@@ -689,12 +907,33 @@
                 throw new Error('Error al subir archivo: ' + error.message);
             }
 
-            // Obtener URL pública
             const { data: urlData } = supabaseClient.storage
                 .from(bucket)
                 .getPublicUrl(data.path);
 
             return urlData.publicUrl;
+        }
+
+        // =============================================
+        // VINCULAR CÓDIGO DE AFILIADO (después del registro)
+        // =============================================
+        async function vincularAfiliado(codigo) {
+            try {
+                const { data, error } = await supabaseClient
+                    .rpc('vincular_codigo_afiliado', {
+                        p_codigo: codigo
+                    });
+
+                if (error) {
+                    console.error('Error al vincular afiliado:', error);
+                    return { success: false, error: error.message };
+                }
+
+                return data;
+            } catch (err) {
+                console.error('Error inesperado:', err);
+                return { success: false, error: err.message };
+            }
         }
 
         // =============================================
@@ -705,6 +944,7 @@
             hideAlerts();
 
             const tipoCuenta = regTipoCuenta.value;
+            const codigoAfiliado = regCodigoAfiliado.value.trim();
 
             // Validar campos de repartidor
             if (tipoCuenta === 'repartidor') {
@@ -716,6 +956,12 @@
                     showAlert('error', 'Debes subir una foto de tu rostro (selfie)');
                     return;
                 }
+            }
+
+            // Validar código de afiliado si se ingresó
+            if (codigoAfiliado.length > 0 && codigoAfiliado.length !== 6) {
+                showAlert('warning', 'El código de afiliado debe tener exactamente 6 dígitos');
+                return;
             }
 
             setLoading(btnRegisterSubmit, true);
@@ -776,23 +1022,52 @@
 
                 if (profileError) {
                     console.error('Error al crear perfil:', profileError);
-                    // Si falla el perfil, intentamos eliminar el usuario auth
                     showAlert('error', 'Error al crear perfil: ' + profileError.message);
                     setLoading(btnRegisterSubmit, false);
                     return;
                 }
 
-                showAlert('success', '✅ ¡Cuenta creada exitosamente! Revisa tu correo para confirmar tu cuenta.');
+                // 3. Vincular código de afiliado si se ingresó
+                let afiliadoMensaje = '';
+                if (codigoAfiliado.length === 6) {
+                    // Necesitamos iniciar sesión primero para usar la función RPC
+                    // porque requiere autenticación
+                    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+                        email: regEmail.value.trim(),
+                        password: regPassword.value
+                    });
+                    
+                    if (!signInError && signInData.user) {
+                        const resultado = await vincularAfiliado(codigoAfiliado);
+                        
+                        if (resultado && resultado.success) {
+                            afiliadoMensaje = ' 🎁 ¡Código de afiliado vinculado exitosamente!';
+                            console.log('✅ Afiliado vinculado:', resultado);
+                        } else {
+                            const errorMsg = resultado?.error || 'Código de afiliado no válido';
+                            console.warn('⚠️ No se pudo vincular afiliado:', errorMsg);
+                            afiliadoMensaje = ' ⚠️ El código de afiliado no se pudo vincular: ' + errorMsg;
+                        }
+                        
+                        // Cerrar sesión para que el usuario confirme su email primero
+                        await supabaseClient.auth.signOut();
+                    } else {
+                        afiliadoMensaje = ' ⚠️ El código se vinculará cuando confirmes tu email.';
+                    }
+                }
+
+                showAlert('success', '✅ ¡Cuenta creada exitosamente!' + afiliadoMensaje + ' Revisa tu correo para confirmar tu cuenta.');
 
                 // Limpiar formulario
                 formRegister.reset();
                 repartidorExtraFields.classList.remove('show');
+                afiliadoStatus.style.display = 'none';
 
                 // Redirigir al login después de 2 segundos
                 setTimeout(() => {
                     tabLogin.click();
                     loginEmail.value = regEmail.value.trim();
-                }, 2000);
+                }, 2500);
 
             } catch (error) {
                 console.error('Error en registro:', error);
@@ -812,7 +1087,6 @@
             setLoading(btnLoginSubmit, true);
 
             try {
-                // 1. Autenticar con Supabase
                 const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
                     email: loginEmail.value.trim(),
                     password: loginPassword.value
@@ -826,7 +1100,6 @@
                     throw new Error('Usuario no encontrado');
                 }
 
-                // 2. Obtener el perfil para saber el rol
                 const { data: profile, error: profileError } = await supabaseClient
                     .from('perfiles')
                     .select('rol, activo, suspendido')
@@ -837,7 +1110,6 @@
                     throw new Error('Perfil no encontrado. Contacta al administrador.');
                 }
 
-                // Verificar estado del usuario
                 if (!profile.activo) {
                     await supabaseClient.auth.signOut();
                     throw new Error('Tu cuenta está desactivada. Contacta al administrador.');
@@ -848,7 +1120,6 @@
                     throw new Error('Tu cuenta está suspendida. Contacta al administrador.');
                 }
 
-                // 3. Redirigir según el rol
                 showAlert('success', '✅ ¡Inicio de sesión exitoso! Redirigiendo...');
 
                 setTimeout(() => {
@@ -870,7 +1141,6 @@
                 console.error('Error en login:', error);
                 let errorMsg = error.message;
 
-                // Traducir errores comunes
                 if (errorMsg.includes('Invalid login credentials')) {
                     errorMsg = 'Correo o contraseña incorrectos';
                 } else if (errorMsg.includes('Email not confirmed')) {
@@ -922,7 +1192,6 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
 
             if (session && session.user) {
-                // Ya hay sesión activa, verificar rol y redirigir
                 const { data: profile } = await supabaseClient
                     .from('perfiles')
                     .select('rol, activo, suspendido')
@@ -946,13 +1215,12 @@
             }
         }
 
-        // Verificar sesión al cargar la página
         checkExistingSession();
 
         console.log('🚀 PediFlash Login - Sistema listo');
         console.log('📋 Roles disponibles: cliente, repartidor, admin');
-        console.log('👤 Admin solo puede iniciar sesión, no registrarse desde aquí');
+        console.log('🎁 Sistema de afiliados integrado');
+        console.log('💡 El código se valida al escribir y se vincula después del registro');
     </script>
 </body>
 </html>
-
