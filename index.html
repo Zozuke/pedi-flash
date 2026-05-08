@@ -1102,150 +1102,141 @@
     </footer>
 
     <script>
-        // =============================================
-        // NAVBAR SCROLL EFFECT
-        // =============================================
-        const navbar = document.getElementById('navbar');
-        let lastScroll = 0;
+    // =============================================
+    // NAVBAR SCROLL EFFECT
+    // =============================================
+    const navbar = document.getElementById('navbar');
+    let lastScroll = 0;
 
-        window.addEventListener('scroll', () => {
-            const currentScroll = window.pageYOffset;
-            
-            if (currentScroll > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-            
-            lastScroll = currentScroll;
-        });
+    window.addEventListener('scroll', () => {
+        const currentScroll = window.pageYOffset;
+        
+        if (currentScroll > 50) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+        
+        lastScroll = currentScroll;
+    });
 
-        // =============================================
-        // MENÚ MÓVIL
-        // =============================================
-        const menuToggle = document.getElementById('menuToggle');
-        const navLinks = document.getElementById('navLinks');
-        const menuOverlay = document.getElementById('menuOverlay');
+    // =============================================
+    // MENÚ MÓVIL
+    // =============================================
+    const menuToggle = document.getElementById('menuToggle');
+    const navLinks = document.getElementById('navLinks');
+    const menuOverlay = document.getElementById('menuOverlay');
 
-        function toggleMenu() {
-            navLinks.classList.toggle('active');
-            menuOverlay.classList.toggle('active');
-            const icon = menuToggle.querySelector('i');
+    function toggleMenu() {
+        navLinks.classList.toggle('active');
+        menuOverlay.classList.toggle('active');
+        const icon = menuToggle.querySelector('i');
+        if (navLinks.classList.contains('active')) {
+            icon.className = 'fas fa-times';
+            document.body.style.overflow = 'hidden';
+        } else {
+            icon.className = 'fas fa-bars';
+            document.body.style.overflow = '';
+        }
+    }
+
+    menuToggle.addEventListener('click', toggleMenu);
+    menuOverlay.addEventListener('click', toggleMenu);
+
+    // Cerrar menú al hacer clic en un enlace
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
             if (navLinks.classList.contains('active')) {
-                icon.className = 'fas fa-times';
-                document.body.style.overflow = 'hidden';
-            } else {
-                icon.className = 'fas fa-bars';
-                document.body.style.overflow = '';
+                toggleMenu();
             }
-        }
-
-        menuToggle.addEventListener('click', toggleMenu);
-        menuOverlay.addEventListener('click', toggleMenu);
-
-        // Cerrar menú al hacer clic en un enlace
-        navLinks.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (navLinks.classList.contains('active')) {
-                    toggleMenu();
-                }
-            });
         });
+    });
 
-        // =============================================
-        // ANIMACIÓN DE CONTADORES
-        // =============================================
-        function animateCounters() {
-            document.querySelectorAll('.stat-number').forEach(counter => {
-                const target = parseInt(counter.getAttribute('data-target'));
-                const duration = 2000;
-                const startTime = performance.now();
+    // =============================================
+    // ANIMACIÓN DE CONTADORES
+    // =============================================
+    function animateCounters() {
+        document.querySelectorAll('.stat-number').forEach(counter => {
+            const target = parseInt(counter.getAttribute('data-target'));
+            const duration = 2000;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
                 
-                function update(currentTime) {
-                    const elapsed = currentTime - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    
-                    // Easing
-                    const eased = 1 - Math.pow(1 - progress, 3);
-                    const current = Math.floor(target * eased);
-                    
-                    counter.textContent = current.toLocaleString();
-                    
-                    if (progress < 1) {
-                        requestAnimationFrame(update);
-                    } else {
-                        counter.textContent = target.toLocaleString();
-                    }
-                }
+                // Easing
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = Math.floor(target * eased);
                 
-                requestAnimationFrame(update);
-            });
-        }
-
-        // Intersection Observer para animar contadores cuando son visibles
-        const statsObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    animateCounters();
-                    statsObserver.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.3 });
-
-        const statsBar = document.querySelector('.stats-bar');
-        if (statsBar) {
-            statsObserver.observe(statsBar);
-        }
-
-        // =============================================
-        // SMOOTH SCROLL PARA ENLACES INTERNOS
-        // =============================================
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                const href = this.getAttribute('href');
-                if (href === '#') return;
+                counter.textContent = current.toLocaleString();
                 
-                e.preventDefault();
-                const target = document.querySelector(href);
-                if (target) {
-                    const offset = 80;
-                    const position = target.getBoundingClientRect().top + window.pageYOffset - offset;
-                    window.scrollTo({
-                        top: position,
-                        behavior: 'smooth'
-                    });
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    counter.textContent = target.toLocaleString();
                 }
-            });
+            }
+            
+            requestAnimationFrame(update);
         });
+    }
 
-        // =============================================
-        // INICIALIZACIÓN
-        // =============================================
-        console.log('🛵 PediFlash Landing Page - Lista');
-        console.log('📱 PWA Ready | 🎨 Diseño Moderno | ⚡ Rendimiento Óptimo');
+    // Intersection Observer para animar contadores cuando son visibles
+    const statsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                animateCounters();
+                statsObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.3 });
 
-        // Registrar Service Worker para PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // Service worker básico para cache
-                const swCode = `
-                    self.addEventListener('install', (e) => {
-                        self.skipWaiting();
-                    });
-                    self.addEventListener('fetch', (e) => {
-                        e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-                    });
-                `;
-                
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(blob);
-                
-                navigator.serviceWorker.register(swUrl)
-                    .then(() => console.log('✅ Service Worker registrado'))
-                    .catch(() => console.log('Service Worker no soportado en este contexto'));
-            });
-        }
-    </script>
+    const statsBar = document.querySelector('.stats-bar');
+    if (statsBar) {
+        statsObserver.observe(statsBar);
+    }
+
+    // =============================================
+    // SMOOTH SCROLL PARA ENLACES INTERNOS
+    // =============================================
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (href === '#') return;
+            
+            e.preventDefault();
+            const target = document.querySelector(href);
+            if (target) {
+                const offset = 80;
+                const position = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                window.scrollTo({
+                    top: position,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+
+    // =============================================
+    // INICIALIZACIÓN
+    // =============================================
+    console.log('🛵 PediFlash Landing Page - Lista');
+    console.log('📱 PWA Ready | 🎨 Diseño Moderno | ⚡ Rendimiento Óptimo');
+
+    // Registrar Service Worker desde archivo externo
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('✅ Service Worker registrado:', registration.scope);
+                })
+                .catch(err => {
+                    console.error('❌ Error al registrar Service Worker:', err);
+                });
+        });
+    }
+</script>
 </body>
 </html>
 
