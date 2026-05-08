@@ -1,15 +1,14 @@
 // sw.js - Service Worker PRO para PediFlash
 
-const CACHE_NAME = 'pediflash-v2';
+const CACHE_NAME = 'pediflash-v3';
 
 // Archivos esenciales (precarga)
 const ARCHIVOS_ESTATICOS = [
     '/',
     '/index.html',
     '/cliente.html',
-    '/styles.css',
-    '/app.js',
-    '/icon.png'
+    '/repartidor.html',
+    '/logo.png'
 ];
 
 // ==========================
