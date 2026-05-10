@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PediFlash - Envíos Rápidos y Seguros</title>
+    
+    <!-- PWA Meta Tags Mejorados -->
+    <meta name="theme-color" content="#FF6B35">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PediFlash">
+    <meta name="description" content="PediFlash - Servicio profesional de envíos urbanos en México. Rápido, seguro y confiable.">
+    <meta name="author" content="PediFlash México">
+    <meta name="robots" content="index, follow">
+    <meta name="keywords" content="envíos, mensajería, México, paquetería, reparto, delivery">
+
+    <!-- Open Graph para redes sociales -->
+    <meta property="og:title" content="PediFlash - Envíos Rápidos en México">
+    <meta property="og:description" content="La app de envíos urbanos más rápida de México. Repartidores verificados y seguimiento en tiempo real.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="logo.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #FF6B35;
+            --primary-dark: #E55A2B;
+            --primary-light: #FFF5F0;
+            --secondary: #1A1A2E;
+            --accent: #1A936F;
+            --danger: #DC3545;
+            --warning: #FFC107;
+            --dark: #212529;
+            --gray: #6C757D;
+            --light: #F8F9FA;
+            --white: #FFFFFF;
+            --radius: 20px;
+            --radius-sm: 12px;
+            --shadow: 0 10px 40px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.12);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 80px;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #FFFBF8;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ========== BOTÓN INSTALAR APP ========== */
+        .install-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: white;
+            border-radius: 25px;
+            padding: 12px 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid var(--primary-light);
+            max-width: 90%;
+            white-space: nowrap;
+        }
+
+        .install-banner.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .install-banner-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), #FF8C5A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            animation: pulse-install 2s infinite;
+        }
+
+        @keyframes pulse-install {
+            0% { box-shadow: 0 0 0 0 rgba(255,107,53,0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(255,107,53,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,107,53,0); }
+        }
+
+        .install-banner-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .install-banner-text strong {
+            display: block;
+            font-size: 14px;
+            color: var(--secondary);
+        }
+
+        .install-banner-text small {
+            font-size: 12px;
+            color: var(--gray);
+        }
+
+        .install-banner-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            flex-shrink: 0;
+            font-family: inherit;
+        }
+
+        .install-banner-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .install-banner-close {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .install-banner-close:hover {
+            transform: scale(1.1);
+        }
+
+        /* Botón flotante de instalar */
+        .floating-install-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9998;
+            box-shadow: 0 8px 30px rgba(255,107,53,0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            animation: float-install 3s ease-in-out infinite;
+        }
+
+        .floating-install-btn.show {
+            display: flex;
+        }
+
+        @keyframes float-install {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .floating-install-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 12px 40px rgba(255,107,53,0.5);
+        }
+
+        .floating-install-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Tooltip para el botón flotante */
+        .floating-install-btn::after {
+            content: '¡Instalar App!';
+            position: absolute;
+            right: 70px;
+            background: var(--secondary);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .floating-install-btn:hover::after {
+            opacity: 1;
+            right: 75px;
+        }
+
+        /* ========== NAVBAR ========== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 15px 0;
+            transition: var(--transition);
+            background: transparent;
+        }
+
+        .navbar.scrolled {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            padding: 10px 0;
+        }
+
+        .navbar .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .navbar .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 24px;
+            color: var(--white);
+            transition: var(--transition);
+        }
+
+        .navbar.scrolled .logo {
+            color: var(--secondary);
+        }
+
+        .logo-img {
+            width: 42px;
+            height: 42px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 15px rgba(255,107,53,0.3);
+        }
+
+        .logo-text span {
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            color: rgba(255,255,255,0.9);
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .navbar.scrolled .nav-links a {
+            color: var(--dark);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .btn-nav {
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-block;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 20px rgba(255,107,53,0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255,107,53,0.4);
+        }
+
+        .btn-outline-light {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.5);
+            color: white;
+        }
+
+        .navbar.scrolled .btn-outline-light {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--white);
+            transition: var(--transition);
+        }
+
+        .navbar.scrolled .menu-toggle {
+            color: var(--secondary);
+        }
+
+        /* Botón instalar en navbar */
+        .btn-install-nav {
+            background: var(--accent);
+            color: white;
+            padding: 10px 22px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            font-family: inherit;
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-install-nav.show {
+            display: flex;
+        }
+
+        .btn-install-nav:hover {
+            background: #147a5c;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26,147,111,0.4);
+        }
+
+        /* ========== HERO ========== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+            padding: 120px 0 80px;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255,107,53,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(26,147,111,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -30px) scale(1.05); }
+        }
+
+        .hero .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content h1 {
+            font-size: clamp(40px, 6vw, 64px);
+            font-weight: 900;
+            line-height: 1.1;
+            color: white;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+        }
+
+        .hero-content h1 .highlight {
+            background: linear-gradient(135deg, var(--primary), #FF8C5A);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-content p {
+            font-size: 18px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 35px;
+            max-width: 500px;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .hero-buttons .btn {
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .btn-hero-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 8px 30px rgba(255,107,53,0.4);
+            border: none;
+        }
+
+        .btn-hero-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(255,107,53,0.5);
+        }
+
+        .btn-hero-secondary {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        .btn-hero-secondary:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: white;
+        }
+
+        .btn-install-hero {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 8px 30px rgba(26,147,111,0.3);
+        }
+
+        .btn-install-hero.show {
+            display: inline-flex;
+        }
+
+        .btn-install-hero:hover {
+            background: #147a5c;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(26,147,111,0.4);
+        }
+
+        .hero-visual {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .hero-phone {
+            width: 280px;
+            height: 560px;
+            background: linear-gradient(145deg, #2d2d3f, #1a1a2e);
+            border-radius: 40px;
+            padding: 15px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-phone-screen {
+            background: var(--primary-light);
+            border-radius: 28px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+            text-align: center;
+            font-size: 50px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .phone-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(26,147,111,0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(26,147,111,0); }
+            100% { box-shadow: 0 0 0 0 rgba(26,147,111,0); }
+        }
+
+        .floating-card {
+            position: absolute;
+            background: white;
+            border-radius: 16px;
+            padding: 15px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 2;
+            animation: floatCard 5s ease-in-out infinite;
+        }
+
+        .floating-card.top {
+            top: 10%;
+            right: -30px;
+            animation-delay: 0s;
+        }
+
+        .floating-card.bottom {
+            bottom: 15%;
+            left: -20px;
+            animation-delay: 2.5s;
+        }
+
+        @keyframes floatCard {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* ========== STATS BAR ========== */
+        .stats-bar {
+            background: white;
+            padding: 30px 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 2;
+            margin-top: -60px;
+            border-radius: 30px 30px 0 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--gray);
+            margin-top: 5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ========== SECTIONS ========== */
+        .section {
+            padding: 100px 0;
+        }
+
+        .section .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 70px;
+        }
+
+        .section-badge {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 900;
+            color: var(--secondary);
+            margin-bottom: 15px;
+            letter-spacing: -1px;
+        }
+
+        .section-subtitle {
+            font-size: 18px;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ========== SERVICES ========== */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 30px;
+        }
+
+        .service-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 40px 30px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border: 1px solid #F0F0F0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .service-card:hover::before {
+            opacity: 1;
+        }
+
+        .service-icon {
+            width: 65px;
+            height: 65px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .service-icon.orange {
+            background: #FFF5F0;
+            color: var(--primary);
+        }
+
+        .service-icon.green {
+            background: #F0FFF8;
+            color: var(--accent);
+        }
+
+        .service-card h3 {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+
+        .service-card p {
+            color: var(--gray);
+            line-height: 1.8;
+        }
+
+        /* ========== STEPS ========== */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+        }
+
+        .step-card {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            font-size: 28px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 25px rgba(255,107,53,0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-card::after {
+            content: '';
+            position: absolute;
+            top: 35px;
+            left: calc(50% + 35px);
+            width: calc(100% - 70px);
+            height: 2px;
+            background: #DEE2E6;
+            z-index: 0;
+        }
+
+        .step-card:last-child::after {
+            display: none;
+        }
+
+        .step-card h4 {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: var(--secondary);
+        }
+
+        .step-card p {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        /* ========== PRICING ========== */
+        .pricing-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 45px 35px;
+            box-shadow: var(--shadow-lg);
+            max-width: 450px;
+            margin: 0 auto;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: var(--transition);
+        }
+
+        .pricing-card:hover {
+            border-color: var(--primary);
+        }
+
+        .pricing-amount {
+            font-size: 60px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .pricing-unit {
+            font-size: 18px;
+            color: var(--gray);
+        }
+
+        .pricing-features {
+            list-style: none;
+            padding: 0;
+            margin: 30px 0;
+        }
+
+        .pricing-features li {
+            padding: 12px 0;
+            border-bottom: 1px solid #F0F0F0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+
+        .pricing-features li i {
+            color: var(--accent);
+        }
+
+        /* ========== CTA ========== */
+        .cta-section {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            text-align: center;
+            padding: 100px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,107,53,0.2) 0%, transparent 70%);
+            top: -250px;
+            right: -100px;
+            border-radius: 50%;
+        }
+
+        .cta-section h2 {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 900;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .cta-section p {
+            font-size: 18px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 35px;
+            position: relative;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            background: var(--secondary);
+            color: white;
+            padding: 60px 0 30px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .footer h4 {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .footer a {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            display: block;
+            padding: 5px 0;
+            transition: var(--transition);
+        }
+
+        .footer a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
+        }
+
+        .trust-badges {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .trust-badges span {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 968px) {
+            .hero .container {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-content p {
+                margin: 0 auto 35px;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .hero-visual {
+                display: none;
+            }
+
+            .steps-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .step-card::after {
+                display: none;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 80%;
+                max-width: 350px;
+                height: 100vh;
+                background: white;
+                flex-direction: column;
+                padding: 100px 30px 30px;
+                gap: 20px;
+                transition: var(--transition);
+                box-shadow: -10px 0 40px rgba(0,0,0,0.1);
+                z-index: 999;
+            }
+
+            .nav-links.active {
+                right: 0;
+            }
+
+            .nav-links a {
+                color: var(--dark) !important;
+                font-size: 18px;
+            }
+
+            .menu-toggle {
+                display: block;
+                z-index: 1000;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .floating-install-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .hero-buttons .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .install-banner {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px;
+            }
+        }
+
+        /* ========== MOBILE MENU OVERLAY ========== */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 998;
+        }
+
+        .menu-overlay.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== BOTÓN FLOTANTE DE INSTALAR ========== -->
+    <button class="floating-install-btn" id="floatingInstallBtn" title="Instalar App">
+        📲
+    </button>
+
+    <!-- ========== BANNER DE INSTALACIÓN ========== -->
+    <div class="install-banner" id="installBanner">
+        <button class="install-banner-close" id="closeBanner">×</button>
+        <div class="install-banner-icon">🛵</div>
+        <div class="install-banner-text">
+            <strong>Instala PediFlash</strong>
+            <small>Acceso rápido y sin conexión</small>
+        </div>
+        <button class="install-banner-btn" id="installBannerBtn">
+            📲 Instalar
+        </button>
+    </div>
+
+    <!-- ========== NAVBAR ========== -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="#" class="logo">
+                <div class="logo-img">🛵</div>
+                <div class="logo-text">Pedi<span>Flash</span></div>
+            </a>
+
+            <div class="nav-links" id="navLinks">
+                <a href="#inicio">Inicio</a>
+                <a href="#servicios">Servicios</a>
+                <a href="#como-funciona">Cómo Funciona</a>
+                <a href="#precios">Precios</a>
+                <button class="btn-install-nav" id="btnInstallNav">
+                    📲 Instalar App
+                </button>
+                <a href="login.html" class="btn-nav btn-primary">Comenzar Ahora 🚀</a>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="btn-install-nav" id="btnInstallNavMobile" style="display:none;">
+                    📲
+                </button>
+                <button class="menu-toggle" id="menuToggle" aria-label="Menú">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <!-- ========== HERO ========== -->
+    <section class="hero" id="inicio">
+        <div class="container">
+            <div class="hero-content">
+                <h1>
+                    Tus envíos en<br>
+                    <span class="highlight">cuestión de minutos</span>
+                </h1>
+                <p>
+                    La app de envíos urbanos más rápida de México. 
+                    Repartidores verificados, seguimiento en tiempo real y el mejor precio por kilómetro.
+                </p>
+                <div class="hero-buttons">
+                    <a href="login.html" class="btn btn-hero-primary">
+                        🚀 Solicitar un Envío
+                    </a>
+                    <a href="#como-funciona" class="btn btn-hero-secondary">
+                        ▶ Ver Cómo Funciona
+                    </a>
+                    <button class="btn-install-hero" id="btnInstallHero">
+                        📲 Instalar App
+                    </button>
+                </div>
+            </div>
+
+            <div class="hero-visual">
+                <div class="hero-phone">
+                    <div class="hero-phone-screen">
+                        <div style="font-size:60px;margin-bottom:15px;">🛵</div>
+                        <div style="font-weight:800;font-size:18px;color:var(--secondary);">PediFlash</div>
+                        <div style="font-size:13px;color:var(--gray);margin:5px 0;">Entrega express</div>
+                        <div style="background:white;border-radius:12px;padding:12px 15px;margin-top:10px;font-size:12px;width:100%;text-align:left;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+                            📦 Pedido #1248<br>
+                            <span style="color:var(--accent);font-weight:700;">En camino...</span><br>
+                            <small style="color:var(--gray);">Llega en ~15 min</small>
+                        </div>
+                        <div class="phone-badge">✓</div>
+                    </div>
+                </div>
+                <div class="floating-card top">
+                    🏃 Repartidor en camino...
+                </div>
+                <div class="floating-card bottom">
+                    ⭐ 4.9 Calificación
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== STATS BAR ========== -->
+    <div class="stats-bar">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" data-target="5000">0</div>
+                <div class="stat-label">Pedidos Entregados</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" data-target="150">0</div>
+                <div class="stat-label">Repartidores Activos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" data-target="98">0</div>
+                <div class="stat-label">% Satisfacción</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" data-target="15">0</div>
+                <div class="stat-label">Min Promedio Entrega</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SERVICIOS ========== -->
+    <section class="section" id="servicios" style="background:white;">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-badge">Nuestros Servicios</div>
+                <h2 class="section-title">Soluciones de envío para ti</h2>
+                <p class="section-subtitle">Dos modalidades que se adaptan a lo que necesitas</p>
+            </div>
+
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon orange">📤</div>
+                    <h3>Envío de Paquetes</h3>
+                    <p>
+                        ¿Necesitas enviar algo? Un repartidor recoge tu paquete en el Punto A 
+                        y lo entrega directamente en el Punto B. Ideal para documentos, regalos, comida y más.
+                    </p>
+                    <ul style="list-style:none;margin-top:15px;">
+                        <li style="padding:5px 0;">✓ Recogida inmediata</li>
+                        <li style="padding:5px 0;">✓ Entrega directa sin escalas</li>
+                        <li style="padding:5px 0;">✓ Seguimiento en tiempo real</li>
+                    </ul>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon green">📥</div>
+                    <h3>Recepción de Paquetes</h3>
+                    <p>
+                        Programa una recogida: un repartidor va al Punto A, recoge lo que necesitas 
+                        y te lo trae al Punto B. Perfecto para compras, trámites o encomiendas.
+                    </p>
+                    <ul style="list-style:none;margin-top:15px;">
+                        <li style="padding:5px 0;">✓ Recogida programada</li>
+                        <li style="padding:5px 0;">✓ Verificación del remitente</li>
+                        <li style="padding:5px 0;">✓ Confirmación al recibir</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== CÓMO FUNCIONA ========== -->
+    <section class="section" id="como-funciona" style="background:#FFFBF8;">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-badge">Proceso Simple</div>
+                <h2 class="section-title">¿Cómo funciona?</h2>
+                <p class="section-subtitle">Solo 4 pasos para enviar o recibir tu paquete</p>
+            </div>
+
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>Regístrate</h4>
+                    <p>Crea tu cuenta gratis en segundos como cliente</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>Selecciona Puntos</h4>
+                    <p>Elige el punto de recogida y el de entrega en el mapa</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>Confirma</h4>
+                    <p>Revisa distancia, tiempo estimado y precio transparente</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h4>¡Recibe!</h4>
+                    <p>Un repartidor toma tu pedido y lo entrega rapidísimo</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== PRECIOS ========== -->
+    <section class="section" id="precios" style="background:white;">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-badge">Precios Transparentes</div>
+                <h2 class="section-title">$20 MXN por kilómetro</h2>
+                <p class="section-subtitle">Sin costos ocultos. Pagas solo por la distancia recorrida.</p>
+            </div>
+
+            <div class="pricing-card">
+                <div class="pricing-amount">$20</div>
+                <div class="pricing-unit">MXN / kilómetro</div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check-circle"></i> Cálculo preciso de distancia</li>
+                    <li><i class="fas fa-check-circle"></i> Tiempo estimado exacto</li>
+                    <li><i class="fas fa-check-circle"></i> 10 min de margen adicional</li>
+                    <li><i class="fas fa-check-circle"></i> Repartidores verificados</li>
+                    <li><i class="fas fa-check-circle"></i> Soporte 24/7</li>
+                </ul>
+                <div style="background:#F8F9FA;border-radius:12px;padding:15px;margin-top:15px;">
+                    <strong>Ejemplo:</strong> 5 km = $100 MXN<br>
+                    <small style="color:var(--gray);">Tiempo estimado: ~10 minutos</small>
+                </div>
+                <a href="login.html" class="btn btn-primary" style="display:block;margin-top:20px;text-align:center;padding:16px;">
+                    ¡Comenzar Ahora!
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== CTA ========== -->
+    <section class="cta-section">
+        <div class="container">
+            <h2>¿Listo para enviar?</h2>
+            <p>Únete a la comunidad de entrega más rápida de México</p>
+            <div style="display:flex;gap:15px;justify-content:center;flex-wrap:wrap;position:relative;">
+                <a href="login.html" class="btn btn-hero-primary" style="font-size:16px;padding:18px 35px;">
+                    🚀 Crear Cuenta Gratis
+                </a>
+                <a href="login.html" class="btn btn-hero-secondary" style="font-size:16px;padding:18px 35px;">
+                    🔑 Iniciar Sesión
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
+                    <div class="logo-img" style="width:38px;height:38px;font-size:18px;">🛵</div>
+                    <span style="font-size:22px;font-weight:800;">Pedi<span style="color:var(--primary);">Flash</span></span>
+                </div>
+                <p style="color:rgba(255,255,255,0.6);max-width:350px;">
+                    La forma más rápida y segura de enviar paquetes en tu ciudad. 
+                    Repartidores verificados, seguimiento en tiempo real.
+                </p>
+            </div>
+            <div>
+                <h4>Enlaces</h4>
+                <a href="#inicio">Inicio</a>
+                <a href="#servicios">Servicios</a>
+                <a href="#como-funciona">Cómo Funciona</a>
+                <a href="#precios">Precios</a>
+                <a href="login.html">Iniciar Sesión</a>
+            </div>
+            <div>
+                <h4>Contacto</h4>
+                <a href="mailto:soporte@pediflash.com">📧 soporte@pediflash.com</a>
+                <a href="tel:+522219861564">📱 +52 221 986 1564</a>
+                <a href="#">📍 Ciudad de México</a>
+                <div style="margin-top:15px;display:flex;gap:12px;font-size:20px;">
+                    <a href="#" style="color:rgba(255,255,255,0.6);"><i class="fab fa-facebook"></i></a>
+                    <a href="#" style="color:rgba(255,255,255,0.6);"><i class="fab fa-instagram"></i></a>
+                    <a href="#" style="color:rgba(255,255,255,0.6);"><i class="fab fa-whatsapp"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="trust-badges">
+                <span>✅ Repartidores Verificados</span>
+                <span>🔒 Datos Protegidos</span>
+                <span>📱 App Segura</span>
+                <span>⭐ 4.9/5 Calificación</span>
+            </div>
+            <p>&copy; 2024 PediFlash México. Todos los derechos reservados.</p>
+            <p style="font-size:12px;margin-top:5px;">
+                <a href="#" style="color:rgba(255,255,255,0.4);margin:0 10px;">Términos de Servicio</a>
+                <a href="#" style="color:rgba(255,255,255,0.4);margin:0 10px;">Política de Privacidad</a>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+    // =============================================
+    // PWA INSTALL LOGIC - MÚLTIPLES BOTONES
+    // =============================================
+    let deferredPrompt;
+    const installBanner = document.getElementById('installBanner');
+    const installBannerBtn = document.getElementById('installBannerBtn');
+    const closeBanner = document.getElementById('closeBanner');
+    const floatingInstallBtn = document.getElementById('floatingInstallBtn');
+    const btnInstallNav = document.getElementById('btnInstallNav');
+    const btnInstallNavMobile = document.getElementById('btnInstallNavMobile');
+    const btnInstallHero = document.getElementById('btnInstallHero');
+
+    // Detectar si ya está instalada
+    function isAppInstalled() {
+        return window.matchMedia('(display-mode: standalone)').matches || 
+               window.navigator.standalone || 
+               document.referrer.includes('android-app://');
+    }
+
+    // Mostrar/ocultar botones según estado
+    function updateInstallUI() {
+        if (isAppInstalled()) {
+            // Ya instalada - ocultar todos los botones
+            installBanner.classList.remove('show');
+            floatingInstallBtn.classList.remove('show');
+            btnInstallNav.classList.remove('show');
+            btnInstallNavMobile.style.display = 'none';
+            btnInstallHero.classList.remove('show');
+            console.log('📱 App ya instalada - ocultando botones');
+        } else if (deferredPrompt) {
+            // Disponible para instalar - mostrar botones
+            setTimeout(() => {
+                installBanner.classList.add('show');
+                btnInstallNav.classList.add('show');
+                btnInstallNavMobile.style.display = 'flex';
+                btnInstallHero.classList.add('show');
+            }, 3000);
+            
+            // Botón flotante aparece después
+            setTimeout(() => {
+                floatingInstallBtn.classList.add('show');
+            }, 5000);
+            console.log('📲 Instalación disponible - mostrando botones');
+        }
+    }
+
+    // Capturar el evento beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        updateInstallUI();
+        console.log('💾 Evento beforeinstallprompt capturado');
+    });
+
+    // Función para instalar
+    async function installApp() {
+        if (!deferredPrompt) {
+            // Fallback para iOS o cuando no está disponible
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                alert('📱 Para instalar en iOS:\n\n1. Toca el botón Compartir\n2. Desplázate y selecciona "Agregar a inicio"\n3. Toca "Agregar"');
+            } else {
+                alert('📲 La opción de instalar no está disponible en este momento. Intenta desde el menú del navegador.');
+            }
+            return;
+        }
+
+        try {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                console.log('✅ Usuario aceptó la instalación');
+                deferredPrompt = null;
+                updateInstallUI();
+            } else {
+                console.log('❌ Usuario rechazó la instalación');
+            }
+        } catch (error) {
+            console.error('Error al instalar:', error);
+        }
+    }
+
+    // Event listeners para todos los botones
+    installBannerBtn.addEventListener('click', installApp);
+    floatingInstallBtn.addEventListener('click', installApp);
+    btnInstallNav.addEventListener('click', installApp);
+    btnInstallNavMobile.addEventListener('click', installApp);
+    btnInstallHero.addEventListener('click', installApp);
+
+    // Cerrar banner
+    closeBanner.addEventListener('click', () => {
+        installBanner.classList.remove('show');
+        // Guardar en localStorage para no mostrar de nuevo pronto
+        localStorage.setItem('installBannerClosed', Date.now());
+    });
+
+    // Detectar cuando se instala
+    window.addEventListener('appinstalled', () => {
+        console.log('🎉 App instalada exitosamente');
+        deferredPrompt = null;
+        installBanner.classList.remove('show');
+        floatingInstallBtn.classList.remove('show');
+        btnInstallNav.classList.remove('show');
+        btnInstallNavMobile.style.display = 'none';
+        btnInstallHero.classList.remove('show');
+    });
+
+    // Verificar si el banner fue cerrado recientemente
+    const bannerClosedTime = localStorage.getItem('installBannerClosed');
+    if (bannerClosedTime && (Date.now() - bannerClosedTime) < 86400000) { // 24 horas
+        // No mostrar banner si fue cerrado hace menos de 24h
+        console.log('⏰ Banner cerrado recientemente');
+    }
+
+    // Verificar estado inicial
+    window.addEventListener('load', () => {
+        updateInstallUI();
+    });
+
+    // =============================================
+    // NAVBAR SCROLL EFFECT
+    // =============================================
+    const navbar = document.getElementById('navbar');
+    
+    window.addEventListener('scroll', () => {
+        const currentScroll = window.pageYOffset;
+        
+        if (currentScroll > 50) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+    });
+
+    // =============================================
+    // MENÚ MÓVIL
+    // =============================================
+    const menuToggle = document.getElementById('menuToggle');
+    const navLinks = document.getElementById('navLinks');
+    const menuOverlay = document.getElementById('menuOverlay');
+
+    function toggleMenu() {
+        navLinks.classList.toggle('active');
+        menuOverlay.classList.toggle('active');
+        const icon = menuToggle.querySelector('i');
+        if (navLinks.classList.contains('active')) {
+            icon.className = 'fas fa-times';
+            document.body.style.overflow = 'hidden';
+        } else {
+            icon.className = 'fas fa-bars';
+            document.body.style.overflow = '';
+        }
+    }
+
+    menuToggle.addEventListener('click', toggleMenu);
+    menuOverlay.addEventListener('click', toggleMenu);
+
+    // Cerrar menú al hacer clic en un enlace
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (navLinks.classList.contains('active')) {
+                toggleMenu();
+            }
+        });
+    });
+
+    // =============================================
+    // ANIMACIÓN DE CONTADORES
+    // =============================================
+    function animateCounters() {
+        document.querySelectorAll('.stat-number').forEach(counter => {
+            const target = parseInt(counter.getAttribute('data-target'));
+            const duration = 2000;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = Math.floor(target * eased);
+                
+                counter.textContent = current.toLocaleString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    counter.textContent = target.toLocaleString();
+                }
+            }
+            
+            requestAnimationFrame(update);
+        });
+    }
+
+    const statsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                animateCounters();
+                statsObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.3 });
+
+    const statsBar = document.querySelector('.stats-bar');
+    if (statsBar) {
+        statsObserver.observe(statsBar);
+    }
+
+    // =============================================
+    // SMOOTH SCROLL PARA ENLACES INTERNOS
+    // =============================================
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (href === '#') return;
+            
+            e.preventDefault();
+            const target = document.querySelector(href);
+            if (target) {
+                const offset = 80;
+                const position = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                window.scrollTo({
+                    top: position,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+
+    // =============================================
+    // INICIALIZACIÓN
+    // =============================================
+    console.log('🛵 PediFlash Landing Page - Lista');
+    console.log('📱 PWA Ready | 🎨 Diseño Moderno | ⚡ Rendimiento Óptimo');
+
+    // Registrar Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('✅ Service Worker registrado:', registration.scope);
+                    
+                    // Verificar si ya está instalada
+                    updateInstallUI();
+                })
+                .catch(err => {
+                    console.error('❌ Error al registrar Service Worker:', err);
+                });
+        });
+    }
+
+    // Actualizar UI cuando cambie el modo de visualización
+    window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
+        updateInstallUI();
+    });
+</script>
+</body>
+</html>
