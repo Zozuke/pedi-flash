@@ -1,71 +1,30 @@
 {
-  "name": "PediFlash - Envios Rapidos y Seguros",
-  "short_name": "PediFlash",
-  "description": "La forma mas rapida y segura de enviar paquetes en tu ciudad",
-  "start_url": "/index.html",
-  "scope": "/",
-  "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#FFFFFF",
-  "theme_color": "#FF6B35",
-  "orientation": "portrait",
-  "lang": "es-MX",
-  "icons": [
-    {
-      "src": "logo.png",
-      "sizes": "48x48",
-      "type": "image/png"
-    },
-    {
-      "src": "logo.png",
-      "sizes": "72x72",
-      "type": "image/png"
-    },
-    {
-      "src": "logo.png",
-      "sizes": "96x96",
-      "type": "image/png"
-    },
-    {
-      "src": "logo.png",
-      "sizes": "144x144",
-      "type": "image/png"
-    },
-    {
-      "src": "logo.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "logo.png",
-      "sizes": "256x256",
-      "type": "image/png"
-    },
-    {
-      "src": "logo.png",
-      "sizes": "384x384",
-      "type": "image/png"
-    },
-    {
-      "src": "logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Solicitar Envio",
-      "short_name": "Enviar",
-      "url": "/cliente.html",
-      "icons": [{ "src": "logo.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Panel Repartidor",
-      "short_name": "Repartidor",
-      "url": "/repartidor.html",
-      "icons": [{ "src": "logo.png", "sizes": "96x96" }]
-    }
-  ]
+    "name": "PediFlash - Envíos Rápidos",
+    "short_name": "PediFlash",
+    "description": "Servicio profesional de envíos urbanos rápidos en México",
+    "start_url": "/index.html",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#FFFFFF",
+    "theme_color": "#FF6B35",
+    "icons": [
+        {
+            "src": "/logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["business", "productivity", "utilities"],
+    "lang": "es-MX",
+    "dir": "ltr",
+    "prefer_related_applications": false,
+    "display_override": ["standalone", "minimal-ui"]
 }
